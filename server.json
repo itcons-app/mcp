@@ -1,0 +1,66 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.itcons-app/mcp",
+  "title": "Itcons.app",
+  "description": "Model Context Protocol server for connecting AI assistants to Itcons.app work orders, work reports, projects, clients, users, and resources.",
+  "version": "0.5.0",
+  "remotes": [
+    {
+      "type": "streamable-http",
+      "url": "https://mcp.itcons.app/mcp"
+    },
+    {
+      "type": "sse",
+      "url": "https://mcp.itcons.app/sse"
+    }
+  ],
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "@itcons-app/mcp",
+      "version": "0.5.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "ITCONS_DOMAIN",
+          "description": "Itcons.app tenant domain, for example 'demo' for https://demo.itcons.app.",
+          "isRequired": true,
+          "format": "string"
+        },
+        {
+          "name": "ITCONS_USERNAME",
+          "description": "Itcons.app username or email for local stdio usage.",
+          "isRequired": false,
+          "format": "string"
+        },
+        {
+          "name": "ITCONS_PASSWORD",
+          "description": "Itcons.app password for local stdio usage.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "ITCONS_TOKEN",
+          "description": "Existing Itcons.app bearer token. Can be used instead of username and password.",
+          "isRequired": false,
+          "format": "string",
+          "isSecret": true
+        },
+        {
+          "name": "ITCONS_TIMEZONE",
+          "description": "Timezone used for date-based queries.",
+          "isRequired": false,
+          "format": "string",
+          "default": "Europe/Madrid"
+        }
+      ]
+    }
+  ],
+  "repository": {
+    "url": "https://github.com/itcons-app/mcp",
+    "source": "github"
+  }
+}

@@ -1,0 +1,53 @@
+{
+  "name": "@itcons-app/mcp",
+  "version": "0.5.0",
+  "description": "Model Context Protocol server for connecting AI assistants to Itcons.app work orders, work reports, projects, clients, users, and resources.",
+  "mcpName": "io.github.itcons-app/mcp",
+  "type": "module",
+  "homepage": "https://itcons.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/itcons-app/mcp.git"
+  },
+  "bugs": {
+    "url": "https://github.com/itcons-app/mcp/issues"
+  },
+  "bin": {
+    "itcons-app-mcp": "src/index.js",
+    "itcons-app-mcp-http": "src/http.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "start:http": "node src/http.js",
+    "check": "node --check src/index.js && node --check src/http.js && node --check scripts/smoke.mjs && node --check scripts/smoke-http.mjs && node --check scripts/smoke-oauth.mjs",
+    "smoke": "node scripts/smoke.mjs",
+    "smoke:http": "node scripts/smoke-http.mjs",
+    "smoke:live": "ITCONS_SMOKE_LIVE=1 node scripts/smoke.mjs",
+    "smoke:http:live": "ITCONS_SMOKE_LIVE=1 node scripts/smoke-http.mjs",
+    "smoke:oauth:live": "node scripts/smoke-oauth.mjs"
+  },
+  "files": [
+    "src",
+    "scripts",
+    ".env.example",
+    "README.md",
+    "server.json",
+    "LICENSE"
+  ],
+  "keywords": [
+    "itcons",
+    "itcons.app",
+    "mcp",
+    "model-context-protocol",
+    "workorders",
+    "work-reports"
+  ],
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "express": "^5.2.1"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "license": "MIT"
+}
