@@ -11,6 +11,27 @@ const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..")
 const serverPath = path.join(rootDir, "src", "http.js");
 const port = process.env.ITCONS_HTTP_SMOKE_PORT || "3333";
 const serverUrl = `http://127.0.0.1:${port}/mcp`;
+const readOnlyTools = new Set([
+  "itcons_check_connection",
+  "itcons_list_workorder_types",
+  "itcons_list_work_report_models",
+  "itcons_list_projects",
+  "itcons_list_clients",
+  "itcons_list_statuses",
+  "itcons_list_users",
+  "itcons_list_resources",
+  "itcons_search_workorders",
+  "itcons_list_pending_workorders",
+  "itcons_search_work_reports",
+  "itcons_list_work_reports_by_date",
+  "itcons_list_today_work_reports"
+]);
+const createTools = new Set([
+  "itcons_create_workorder",
+  "itcons_create_user",
+  "itcons_create_project",
+  "itcons_create_client"
+]);
 
 const child = spawn(process.execPath, [serverPath], {
   cwd: rootDir,
@@ -46,6 +67,23 @@ try {
         tool.annotations?.destructiveHint === undefined;
     })
     .map((tool) => tool.name);
+  const invalidAnnotations = tools
+    .filter((tool) => {
+      if (readOnlyTools.has(tool.name)) {
+        return tool.annotations?.readOnlyHint !== true ||
+          tool.annotations?.destructiveHint !== false ||
+          tool.annotations?.openWorldHint !== false;
+      }
+
+      if (createTools.has(tool.name)) {
+        return tool.annotations?.readOnlyHint !== false ||
+          tool.annotations?.destructiveHint !== false ||
+          tool.annotations?.openWorldHint !== false;
+      }
+
+      return false;
+    })
+    .map((tool) => tool.name);
 
   if (tools.length !== 17) {
     throw new Error(`Expected 17 tools, discovered ${tools.length}.`);
@@ -53,6 +91,10 @@ try {
 
   if (missingAnnotations.length > 0) {
     throw new Error(`Missing tool annotations: ${missingAnnotations.join(", ")}`);
+  }
+
+  if (invalidAnnotations.length > 0) {
+    throw new Error(`Unexpected tool annotations: ${invalidAnnotations.join(", ")}`);
   }
 
   if (process.env.ITCONS_SMOKE_LIVE === "1") {

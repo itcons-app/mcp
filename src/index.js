@@ -21,15 +21,15 @@ const WORKORDER_STATUS = {
   completado: 6,
   anulado: 7
 };
-const READ_ONLY_TOOL = {
+const READ_ONLY_PRIVATE_TOOL = {
   readOnlyHint: true,
   destructiveHint: false,
-  openWorldHint: true
+  openWorldHint: false
 };
-const CREATE_TOOL = {
+const CREATE_PRIVATE_TOOL = {
   readOnlyHint: false,
   destructiveHint: false,
-  openWorldHint: true
+  openWorldHint: false
 };
 
 let cachedToken = process.env.ITCONS_TOKEN || null;
@@ -51,46 +51,46 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
       name: "itcons_check_connection",
-      description: "Validate the configured Itcons.app credentials by listing work order types.",
-      annotations: READ_ONLY_TOOL,
+      description: "Validate the configured Itcons.app credentials by listing private work order types without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({})
     },
     {
       name: "itcons_list_workorder_types",
-      description: "List work order types from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private work order types from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         limit: integerProperty("Maximum items to return.", 1, 500)
       })
     },
     {
       name: "itcons_list_work_report_models",
-      description: "List work report models from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private work report models from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         limit: integerProperty("Maximum items to return.", 1, 500)
       })
     },
     {
       name: "itcons_list_projects",
-      description: "List projects/assignments from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private projects and assignments from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         limit: integerProperty("Maximum items to return.", 1, 500)
       })
     },
     {
       name: "itcons_list_clients",
-      description: "List clients from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private clients from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         limit: integerProperty("Maximum items to return.", 1, 500)
       })
     },
     {
       name: "itcons_list_statuses",
-      description: "List work report and work order statuses from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private work report and work order statuses from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         type: enumProperty("Optional status type filter.", ["pack", "workorder"]),
         limit: integerProperty("Maximum items to return.", 1, 500)
@@ -98,24 +98,24 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_list_users",
-      description: "List users from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private users from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         limit: integerProperty("Maximum items to return.", 1, 500)
       })
     },
     {
       name: "itcons_list_resources",
-      description: "List resources from Itcons.app.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private resources from Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         limit: integerProperty("Maximum items to return.", 1, 500)
       })
     },
     {
       name: "itcons_search_workorders",
-      description: "Search work orders from Itcons.app with optional filters.",
-      annotations: READ_ONLY_TOOL,
+      description: "Search private Itcons.app work orders with optional filters without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         status: statusProperty("Optional work order status. Use 4/pendiente, 5/en-ejecucion, 6/completado, or 7/anulado."),
         project: integerProperty("Optional project/assignment ID."),
@@ -131,8 +131,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_list_pending_workorders",
-      description: "List pending work orders from Itcons.app. Pending is status 4.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private pending work orders from Itcons.app. Pending is status 4 and no data is modified.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         project: integerProperty("Optional project/assignment ID."),
         type: integerProperty("Optional work order type ID."),
@@ -147,8 +147,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_search_work_reports",
-      description: "Search work reports, optionally by report ID or work report model.",
-      annotations: READ_ONLY_TOOL,
+      description: "Search private work reports by ID or model in Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         id: integerProperty("Work report ID."),
         model: integerProperty("Work report model ID."),
@@ -158,8 +158,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_list_work_reports_by_date",
-      description: "List work reports matching a specific date. Accepts YYYY-MM-DD or DD/MM/YYYY.",
-      annotations: READ_ONLY_TOOL,
+      description: "List private work reports matching a specific date in Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema(
         {
           date: stringProperty("Report date in YYYY-MM-DD or DD/MM/YYYY format."),
@@ -172,8 +172,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_list_today_work_reports",
-      description: "List work reports dated today. Uses ITCONS_TIMEZONE when set, otherwise Europe/Madrid.",
-      annotations: READ_ONLY_TOOL,
+      description: "List today's private work reports in Itcons.app without modifying data.",
+      annotations: READ_ONLY_PRIVATE_TOOL,
       inputSchema: objectSchema({
         model: integerProperty("Optional work report model ID."),
         limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
@@ -182,8 +182,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_create_workorder",
-      description: "Create a work order in Itcons.app.",
-      annotations: CREATE_TOOL,
+      description: "Create a new work order inside the user's private Itcons.app workspace.",
+      annotations: CREATE_PRIVATE_TOOL,
       inputSchema: objectSchema(
         {
           name: stringProperty("Work order name."),
@@ -198,8 +198,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_create_user",
-      description: "Create a user in Itcons.app.",
-      annotations: CREATE_TOOL,
+      description: "Create a new user inside the user's private Itcons.app workspace.",
+      annotations: CREATE_PRIVATE_TOOL,
       inputSchema: objectSchema(
         {
           username: stringProperty("Username."),
@@ -222,8 +222,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_create_project",
-      description: "Create a project/assignment in Itcons.app.",
-      annotations: CREATE_TOOL,
+      description: "Create a new project or assignment inside the user's private Itcons.app workspace.",
+      annotations: CREATE_PRIVATE_TOOL,
       inputSchema: objectSchema(
         {
           name: stringProperty("Project name."),
@@ -237,8 +237,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: "itcons_create_client",
-      description: "Create a client in Itcons.app.",
-      annotations: CREATE_TOOL,
+      description: "Create a new client inside the user's private Itcons.app workspace.",
+      annotations: CREATE_PRIVATE_TOOL,
       inputSchema: objectSchema(
         {
           name: stringProperty("Client name."),

@@ -26,6 +26,8 @@ const expectedTools = [
   "itcons_create_project",
   "itcons_create_client"
 ];
+const readOnlyTools = new Set(expectedTools.filter((tool) => !tool.startsWith("itcons_create_")));
+const createTools = new Set(expectedTools.filter((tool) => tool.startsWith("itcons_create_")));
 
 const transport = new StdioClientTransport({
   command: process.execPath,
@@ -55,6 +57,23 @@ try {
         tool.annotations?.destructiveHint === undefined;
     })
     .map((tool) => tool.name);
+  const invalidAnnotations = tools
+    .filter((tool) => {
+      if (readOnlyTools.has(tool.name)) {
+        return tool.annotations?.readOnlyHint !== true ||
+          tool.annotations?.destructiveHint !== false ||
+          tool.annotations?.openWorldHint !== false;
+      }
+
+      if (createTools.has(tool.name)) {
+        return tool.annotations?.readOnlyHint !== false ||
+          tool.annotations?.destructiveHint !== false ||
+          tool.annotations?.openWorldHint !== false;
+      }
+
+      return false;
+    })
+    .map((tool) => tool.name);
 
   if (missingTools.length > 0) {
     throw new Error(`Missing expected tools: ${missingTools.join(", ")}`);
@@ -62,6 +81,10 @@ try {
 
   if (missingAnnotations.length > 0) {
     throw new Error(`Missing tool annotations: ${missingAnnotations.join(", ")}`);
+  }
+
+  if (invalidAnnotations.length > 0) {
+    throw new Error(`Unexpected tool annotations: ${invalidAnnotations.join(", ")}`);
   }
 
   console.log(`OK: discovered ${toolNames.length} tools.`);

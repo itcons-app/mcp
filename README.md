@@ -178,8 +178,8 @@ Create tools:
 
 Tool annotations:
 
-- Read-only tools set `readOnlyHint: true`, `destructiveHint: false`, and `openWorldHint: true`.
-- Create tools set `readOnlyHint: false`, `destructiveHint: false`, and `openWorldHint: true`.
+- Read-only tools set `readOnlyHint: true`, `destructiveHint: false`, and `openWorldHint: false` because they only read private Itcons.app data.
+- Create tools set `readOnlyHint: false`, `destructiveHint: false`, and `openWorldHint: false` because they create records only inside a private Itcons.app workspace and do not publish to public internet surfaces.
 
 ## Environment Variables
 

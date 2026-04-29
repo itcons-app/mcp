@@ -3,7 +3,7 @@
   "name": "io.github.itcons-app/mcp",
   "title": "Itcons.app",
   "description": "Connect AI assistants to Itcons.app work orders, reports, projects, users, and resources.",
-  "version": "0.5.1",
+  "version": "0.5.2",
   "remotes": [
     {
       "type": "streamable-http",
@@ -18,7 +18,7 @@
     {
       "registryType": "npm",
       "identifier": "@itcons-app/mcp",
-      "version": "0.5.1",
+      "version": "0.5.2",
       "transport": {
         "type": "stdio"
       },
