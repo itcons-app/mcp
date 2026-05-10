@@ -110,6 +110,7 @@ npm run start:http
 The remote server exposes:
 
 - MCP Streamable HTTP endpoint: `https://mcp.example.com/mcp`
+- Reports-only MCP endpoint for public ChatGPT apps: `https://mcp.example.com/reports-mcp`
 - SSE-compatible endpoint: `https://mcp.example.com/sse`
 - OAuth authorize URL: `https://mcp.example.com/oauth/authorize`
 - OAuth token URL: `https://mcp.example.com/oauth/token`
@@ -120,6 +121,12 @@ For ChatGPT's "Create app" screen, use the public MCP URL:
 
 ```text
 https://mcp.example.com/mcp
+```
+
+For a narrow public app focused only on work reports, use:
+
+```text
+https://mcp.example.com/reports-mcp
 ```
 
 If a client specifically asks for an SSE URL, use:
@@ -175,6 +182,14 @@ Create tools:
 - `itcons_create_user`
 - `itcons_create_project`
 - `itcons_create_client`
+
+Reports-only profile tools exposed by `/reports-mcp`:
+
+- `itcons_check_connection`
+- `itcons_list_work_report_models`
+- `itcons_search_work_reports`
+- `itcons_list_work_reports_by_date`
+- `itcons_list_today_work_reports`
 
 Tool annotations:
 

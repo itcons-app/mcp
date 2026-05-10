@@ -31,286 +31,300 @@ const CREATE_PRIVATE_TOOL = {
   destructiveHint: false,
   openWorldHint: false
 };
-
-let cachedToken = process.env.ITCONS_TOKEN || null;
-
-export function createItconsMcpServer() {
-const server = new Server(
+const REPORTS_ONLY_TOOL_NAMES = [
+  "itcons_check_connection",
+  "itcons_list_work_report_models",
+  "itcons_search_work_reports",
+  "itcons_list_work_reports_by_date",
+  "itcons_list_today_work_reports"
+];
+const TOOL_DEFINITIONS = [
   {
-    name: "itcons-app-mcp-server",
-    version: "1.0.0"
+    name: "itcons_check_connection",
+    description: "Validate the configured Itcons.app credentials by listing private work order types without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({})
   },
   {
-    capabilities: {
-      tools: {}
-    }
-  }
-);
-
-server.setRequestHandler(ListToolsRequestSchema, async () => ({
-  tools: [
-    {
-      name: "itcons_check_connection",
-      description: "Validate the configured Itcons.app credentials by listing private work order types without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({})
-    },
-    {
-      name: "itcons_list_workorder_types",
-      description: "List private work order types from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_list_work_report_models",
-      description: "List private work report models from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_list_projects",
-      description: "List private projects and assignments from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_list_clients",
-      description: "List private clients from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_list_statuses",
-      description: "List private work report and work order statuses from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        type: enumProperty("Optional status type filter.", ["pack", "workorder"]),
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_list_users",
-      description: "List private users from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_list_resources",
-      description: "List private resources from Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        limit: integerProperty("Maximum items to return.", 1, 500)
-      })
-    },
-    {
-      name: "itcons_search_workorders",
-      description: "Search private Itcons.app work orders with optional filters without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        status: statusProperty("Optional work order status. Use 4/pendiente, 5/en-ejecucion, 6/completado, or 7/anulado."),
-        project: integerProperty("Optional project/assignment ID."),
-        type: integerProperty("Optional work order type ID."),
-        priority: stringProperty("Optional priority. Accepts urgente, alta, media, baja, or API labels such as priority.alta."),
-        assigned_to: stringProperty("Optional assigned user filter. Matches username, name, email, or user ID."),
-        name: stringProperty("Optional case-insensitive work order name search."),
-        created_by: stringProperty("Optional creator username filter."),
-        limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-        offset: integerProperty("Pagination offset after filtering.", 0, undefined, 0),
-        include_raw: booleanProperty("Include full raw work order objects.", false)
-      })
-    },
-    {
-      name: "itcons_list_pending_workorders",
-      description: "List private pending work orders from Itcons.app. Pending is status 4 and no data is modified.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        project: integerProperty("Optional project/assignment ID."),
-        type: integerProperty("Optional work order type ID."),
-        priority: stringProperty("Optional priority. Accepts urgente, alta, media, baja, or API labels such as priority.alta."),
-        assigned_to: stringProperty("Optional assigned user filter. Matches username, name, email, or user ID."),
-        name: stringProperty("Optional case-insensitive work order name search."),
-        created_by: stringProperty("Optional creator username filter."),
-        limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-        offset: integerProperty("Pagination offset after filtering.", 0, undefined, 0),
-        include_raw: booleanProperty("Include full raw work order objects.", false)
-      })
-    },
-    {
-      name: "itcons_search_work_reports",
-      description: "Search private work reports by ID or model in Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
-        id: integerProperty("Work report ID."),
-        model: integerProperty("Work report model ID."),
-        limit: integerProperty("Maximum items to return.", 1, 500, 100),
-        offset: integerProperty("Pagination offset.", 0, undefined, 0)
-      })
-    },
-    {
-      name: "itcons_list_work_reports_by_date",
-      description: "List private work reports matching a specific date in Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema(
-        {
-          date: stringProperty("Report date in YYYY-MM-DD or DD/MM/YYYY format."),
-          model: integerProperty("Optional work report model ID."),
-          limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-          offset: integerProperty("Pagination offset for the API request.", 0, undefined, 0)
-        },
-        ["date"]
-      )
-    },
-    {
-      name: "itcons_list_today_work_reports",
-      description: "List today's private work reports in Itcons.app without modifying data.",
-      annotations: READ_ONLY_PRIVATE_TOOL,
-      inputSchema: objectSchema({
+    name: "itcons_list_workorder_types",
+    description: "List private work order types from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_list_work_report_models",
+    description: "List private work report models from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_list_projects",
+    description: "List private projects and assignments from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_list_clients",
+    description: "List private clients from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_list_statuses",
+    description: "List private work report and work order statuses from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      type: enumProperty("Optional status type filter.", ["pack", "workorder"]),
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_list_users",
+    description: "List private users from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_list_resources",
+    description: "List private resources from Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      limit: integerProperty("Maximum items to return.", 1, 500)
+    })
+  },
+  {
+    name: "itcons_search_workorders",
+    description: "Search private Itcons.app work orders with optional filters without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      status: statusProperty("Optional work order status. Use 4/pendiente, 5/en-ejecucion, 6/completado, or 7/anulado."),
+      project: integerProperty("Optional project/assignment ID."),
+      type: integerProperty("Optional work order type ID."),
+      priority: stringProperty("Optional priority. Accepts urgente, alta, media, baja, or API labels such as priority.alta."),
+      assigned_to: stringProperty("Optional assigned user filter. Matches username, name, email, or user ID."),
+      name: stringProperty("Optional case-insensitive work order name search."),
+      created_by: stringProperty("Optional creator username filter."),
+      limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
+      offset: integerProperty("Pagination offset after filtering.", 0, undefined, 0),
+      include_raw: booleanProperty("Include full raw work order objects.", false)
+    })
+  },
+  {
+    name: "itcons_list_pending_workorders",
+    description: "List private pending work orders from Itcons.app. Pending is status 4 and no data is modified.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      project: integerProperty("Optional project/assignment ID."),
+      type: integerProperty("Optional work order type ID."),
+      priority: stringProperty("Optional priority. Accepts urgente, alta, media, baja, or API labels such as priority.alta."),
+      assigned_to: stringProperty("Optional assigned user filter. Matches username, name, email, or user ID."),
+      name: stringProperty("Optional case-insensitive work order name search."),
+      created_by: stringProperty("Optional creator username filter."),
+      limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
+      offset: integerProperty("Pagination offset after filtering.", 0, undefined, 0),
+      include_raw: booleanProperty("Include full raw work order objects.", false)
+    })
+  },
+  {
+    name: "itcons_search_work_reports",
+    description: "Search private work reports by ID or model in Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      id: integerProperty("Work report ID."),
+      model: integerProperty("Work report model ID."),
+      limit: integerProperty("Maximum items to return.", 1, 500, 100),
+      offset: integerProperty("Pagination offset.", 0, undefined, 0)
+    })
+  },
+  {
+    name: "itcons_list_work_reports_by_date",
+    description: "List private work reports matching a specific date in Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema(
+      {
+        date: stringProperty("Report date in YYYY-MM-DD or DD/MM/YYYY format."),
         model: integerProperty("Optional work report model ID."),
         limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
         offset: integerProperty("Pagination offset for the API request.", 0, undefined, 0)
-      })
-    },
-    {
-      name: "itcons_create_workorder",
-      description: "Create a new work order inside the user's private Itcons.app workspace.",
-      annotations: CREATE_PRIVATE_TOOL,
-      inputSchema: objectSchema(
-        {
-          name: stringProperty("Work order name."),
-          project: integerProperty("Project/assignment ID."),
-          type: integerProperty("Work order type ID."),
-          priority: enumProperty("Priority.", PRIORITIES),
-          info: stringProperty("Optional work order description."),
-          erpid: stringProperty("Optional ERP ID.")
-        },
-        ["name", "project", "type"]
-      )
-    },
-    {
-      name: "itcons_create_user",
-      description: "Create a new user inside the user's private Itcons.app workspace.",
-      annotations: CREATE_PRIVATE_TOOL,
-      inputSchema: objectSchema(
-        {
-          username: stringProperty("Username."),
-          email: stringProperty("Email address.", "email"),
-          password: stringProperty("Initial password."),
-          roles: enumProperty("Role ID: 1 administrator, 2 mobile user, 3 project manager.", ROLE_IDS, "2"),
-          firstname: stringProperty("First name."),
-          lastname: stringProperty("Last name."),
-          dni: stringProperty("DNI/NIF."),
-          erpid: stringProperty("Optional ERP ID."),
-          workorder_active: booleanProperty("Can use work orders.", true),
-          workorder_create: booleanProperty("Can create work orders.", true),
-          projects_create: booleanProperty("Can create projects.", true),
-          modelo_id: arrayProperty("Work report model IDs.", {
-            type: "integer"
-          })
-        },
-        ["username", "email", "password"]
-      )
-    },
-    {
-      name: "itcons_create_project",
-      description: "Create a new project or assignment inside the user's private Itcons.app workspace.",
-      annotations: CREATE_PRIVATE_TOOL,
-      inputSchema: objectSchema(
-        {
-          name: stringProperty("Project name."),
-          email: stringProperty("Optional project email.", "email"),
-          info: stringProperty("Optional project information."),
-          erpid: stringProperty("Optional ERP ID."),
-          client: integerProperty("Optional client ID.")
-        },
-        ["name"]
-      )
-    },
-    {
-      name: "itcons_create_client",
-      description: "Create a new client inside the user's private Itcons.app workspace.",
-      annotations: CREATE_PRIVATE_TOOL,
-      inputSchema: objectSchema(
-        {
-          name: stringProperty("Client name."),
-          address: stringProperty("Address."),
-          cif: stringProperty("CIF/NIF."),
-          phone: stringProperty("Phone."),
-          email: stringProperty("Email address.", "email"),
-          erpid: stringProperty("Optional ERP ID.")
-        },
-        ["name"]
-      )
-    }
-  ]
-}));
-
-server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
-  const args = request.params.arguments || {};
-  const context = itconsContext(extra);
-
-  try {
-    switch (request.params.name) {
-      case "itcons_check_connection":
-        return toolResult(await listResource("/workorderstypes", args.limit || 1, context));
-      case "itcons_list_workorder_types":
-        return toolResult(await listResource("/workorderstypes", args.limit, context));
-      case "itcons_list_work_report_models":
-        return toolResult(await listResource("/2.0/modelosparte", args.limit, context));
-      case "itcons_list_projects":
-        return toolResult(await listResource("/obras", args.limit, context));
-      case "itcons_list_clients":
-        return toolResult(await listResource("/clients", args.limit, context));
-      case "itcons_list_statuses":
-        return toolResult(await listStatuses(args, context));
-      case "itcons_list_users":
-        return toolResult(await listResource("/2.0/users", args.limit, context));
-      case "itcons_list_resources":
-        return toolResult(await listResource("/resources", args.limit, context));
-      case "itcons_search_workorders":
-        return toolResult(await searchWorkorders(args, context));
-      case "itcons_list_pending_workorders":
-        return toolResult(await listPendingWorkorders(args, context));
-      case "itcons_search_work_reports":
-        return toolResult(await searchWorkReports(args, context));
-      case "itcons_list_work_reports_by_date":
-        return toolResult(await listWorkReportsByDate(args, context));
-      case "itcons_list_today_work_reports":
-        return toolResult(await listTodayWorkReports(args, context));
-      case "itcons_create_workorder":
-        return toolResult(await createWorkorder(args, context));
-      case "itcons_create_user":
-        return toolResult(await createUser(args, context));
-      case "itcons_create_project":
-        return toolResult(await createProject(args, context));
-      case "itcons_create_client":
-        return toolResult(await createClient(args, context));
-      default:
-        throw new Error(`Unknown tool: ${request.params.name}`);
-    }
-  } catch (error) {
-    return {
-      isError: true,
-      content: [
-        {
-          type: "text",
-          text: error.message
-        }
-      ]
-    };
+      },
+      ["date"]
+    )
+  },
+  {
+    name: "itcons_list_today_work_reports",
+    description: "List today's private work reports in Itcons.app without modifying data.",
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    inputSchema: objectSchema({
+      model: integerProperty("Optional work report model ID."),
+      limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
+      offset: integerProperty("Pagination offset for the API request.", 0, undefined, 0)
+    })
+  },
+  {
+    name: "itcons_create_workorder",
+    description: "Create a new work order inside the user's private Itcons.app workspace.",
+    annotations: CREATE_PRIVATE_TOOL,
+    inputSchema: objectSchema(
+      {
+        name: stringProperty("Work order name."),
+        project: integerProperty("Project/assignment ID."),
+        type: integerProperty("Work order type ID."),
+        priority: enumProperty("Priority.", PRIORITIES),
+        info: stringProperty("Optional work order description."),
+        erpid: stringProperty("Optional ERP ID.")
+      },
+      ["name", "project", "type"]
+    )
+  },
+  {
+    name: "itcons_create_user",
+    description: "Create a new user inside the user's private Itcons.app workspace.",
+    annotations: CREATE_PRIVATE_TOOL,
+    inputSchema: objectSchema(
+      {
+        username: stringProperty("Username."),
+        email: stringProperty("Email address.", "email"),
+        password: stringProperty("Initial password."),
+        roles: enumProperty("Role ID: 1 administrator, 2 mobile user, 3 project manager.", ROLE_IDS, "2"),
+        firstname: stringProperty("First name."),
+        lastname: stringProperty("Last name."),
+        dni: stringProperty("DNI/NIF."),
+        erpid: stringProperty("Optional ERP ID."),
+        workorder_active: booleanProperty("Can use work orders.", true),
+        workorder_create: booleanProperty("Can create work orders.", true),
+        projects_create: booleanProperty("Can create projects.", true),
+        modelo_id: arrayProperty("Work report model IDs.", {
+          type: "integer"
+        })
+      },
+      ["username", "email", "password"]
+    )
+  },
+  {
+    name: "itcons_create_project",
+    description: "Create a new project or assignment inside the user's private Itcons.app workspace.",
+    annotations: CREATE_PRIVATE_TOOL,
+    inputSchema: objectSchema(
+      {
+        name: stringProperty("Project name."),
+        email: stringProperty("Optional project email.", "email"),
+        info: stringProperty("Optional project information."),
+        erpid: stringProperty("Optional ERP ID."),
+        client: integerProperty("Optional client ID.")
+      },
+      ["name"]
+    )
+  },
+  {
+    name: "itcons_create_client",
+    description: "Create a new client inside the user's private Itcons.app workspace.",
+    annotations: CREATE_PRIVATE_TOOL,
+    inputSchema: objectSchema(
+      {
+        name: stringProperty("Client name."),
+        address: stringProperty("Address."),
+        cif: stringProperty("CIF/NIF."),
+        phone: stringProperty("Phone."),
+        email: stringProperty("Email address.", "email"),
+        erpid: stringProperty("Optional ERP ID.")
+      },
+      ["name"]
+    )
   }
-});
+];
+const TOOL_HANDLERS = {
+  itcons_check_connection: (args, context) => listResource("/workorderstypes", args.limit || 1, context),
+  itcons_list_workorder_types: (args, context) => listResource("/workorderstypes", args.limit, context),
+  itcons_list_work_report_models: (args, context) => listResource("/2.0/modelosparte", args.limit, context),
+  itcons_list_projects: (args, context) => listResource("/obras", args.limit, context),
+  itcons_list_clients: (args, context) => listResource("/clients", args.limit, context),
+  itcons_list_statuses: (args, context) => listStatuses(args, context),
+  itcons_list_users: (args, context) => listResource("/2.0/users", args.limit, context),
+  itcons_list_resources: (args, context) => listResource("/resources", args.limit, context),
+  itcons_search_workorders: (args, context) => searchWorkorders(args, context),
+  itcons_list_pending_workorders: (args, context) => listPendingWorkorders(args, context),
+  itcons_search_work_reports: (args, context) => searchWorkReports(args, context),
+  itcons_list_work_reports_by_date: (args, context) => listWorkReportsByDate(args, context),
+  itcons_list_today_work_reports: (args, context) => listTodayWorkReports(args, context),
+  itcons_create_workorder: (args, context) => createWorkorder(args, context),
+  itcons_create_user: (args, context) => createUser(args, context),
+  itcons_create_project: (args, context) => createProject(args, context),
+  itcons_create_client: (args, context) => createClient(args, context)
+};
 
-return server;
+let cachedToken = process.env.ITCONS_TOKEN || null;
+
+export function createItconsMcpServer(options = {}) {
+  const toolProfile = normalizeToolProfile(options.toolProfile);
+  const allowedToolNames = allowedToolNameSet(toolProfile);
+  const server = new Server(
+    {
+      name: "itcons-app-mcp-server",
+      version: "1.0.0"
+    },
+    {
+      capabilities: {
+        tools: {}
+      }
+    }
+  );
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => ({
+    tools: TOOL_DEFINITIONS.filter((tool) => allowedToolNames.has(tool.name))
+  }));
+
+  server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
+    const args = request.params.arguments || {};
+    const context = itconsContext(extra);
+
+    try {
+      const handler = TOOL_HANDLERS[request.params.name];
+
+      if (!handler || !allowedToolNames.has(request.params.name)) {
+        throw new Error(`Unknown tool: ${request.params.name}`);
+      }
+
+      return toolResult(await handler(args, context));
+    } catch (error) {
+      return {
+        isError: true,
+        content: [
+          {
+            type: "text",
+            text: error.message
+          }
+        ]
+      };
+    }
+  });
+
+  return server;
+}
+
+export function normalizeToolProfile(value) {
+  return value === "reports-only" ? "reports-only" : "full";
+}
+
+export function reportsOnlyToolNames() {
+  return [...REPORTS_ONLY_TOOL_NAMES];
+}
+
+function allowedToolNameSet(toolProfile) {
+  if (toolProfile === "reports-only") {
+    return new Set(REPORTS_ONLY_TOOL_NAMES);
+  }
+
+  return new Set(TOOL_DEFINITIONS.map((tool) => tool.name));
 }
 
 function objectSchema(properties, required = []) {

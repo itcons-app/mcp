@@ -11,6 +11,7 @@ import { createItconsMcpServer, loginToItcons } from "./index.js";
 const DEFAULT_PORT = 3000;
 const DEFAULT_HOST = "127.0.0.1";
 const DEFAULT_MCP_PATH = "/mcp";
+const DEFAULT_REPORTS_MCP_PATH = "/reports-mcp";
 const DEFAULT_SSE_PATH = "/sse";
 const ACCESS_TOKEN_TTL_SECONDS = 60 * 60 * 24 * 30;
 const AUTH_CODE_TTL_MS = 5 * 60 * 1000;
@@ -18,7 +19,6 @@ const AUTH_CODE_TTL_MS = 5 * 60 * 1000;
 const authCodes = new Map();
 const accessTokens = new Map();
 const refreshTokens = new Map();
-const transports = new Map();
 const dynamicClients = new Map();
 
 const config = {
@@ -26,6 +26,7 @@ const config = {
   port: Number(process.env.PORT || DEFAULT_PORT),
   publicUrl: cleanPublicUrl(process.env.ITCONS_MCP_PUBLIC_URL),
   mcpPath: normalizePath(process.env.ITCONS_MCP_PATH || DEFAULT_MCP_PATH),
+  reportsMcpPath: normalizePath(process.env.ITCONS_REPORTS_MCP_PATH || DEFAULT_REPORTS_MCP_PATH),
   ssePath: normalizePath(process.env.ITCONS_MCP_SSE_PATH || DEFAULT_SSE_PATH),
   oauthClientId: process.env.ITCONS_OAUTH_CLIENT_ID || "itcons-app-chatgpt",
   oauthClientSecret: process.env.ITCONS_OAUTH_CLIENT_SECRET || "",
@@ -47,6 +48,7 @@ app.get("/", (_req, res) => {
   res.json({
     name: "Itcons.app MCP Server",
     mcp: absoluteUrl(config.mcpPath),
+    reports_mcp: absoluteUrl(config.reportsMcpPath),
     sse: absoluteUrl(config.ssePath),
     authorization: absoluteUrl("/oauth/authorize"),
     token: absoluteUrl("/oauth/token")
@@ -162,46 +164,55 @@ app.post("/oauth/register", async (req, res) => {
   }
 });
 
-app.all(config.mcpPath, requireMcpAuth, handleMcpRequest);
+const fullMcpHandler = createMcpRouteHandler({ toolProfile: "full" });
+const reportsMcpHandler = createMcpRouteHandler({ toolProfile: "reports-only" });
+
+app.all(config.mcpPath, requireMcpAuth, fullMcpHandler);
+app.all(config.reportsMcpPath, requireMcpAuth, reportsMcpHandler);
 
 if (config.ssePath !== config.mcpPath) {
-  app.all(config.ssePath, requireMcpAuth, handleMcpRequest);
+  app.all(config.ssePath, requireMcpAuth, fullMcpHandler);
 }
 
 app.listen(config.port, config.host, () => {
   console.error(`Itcons.app MCP HTTP server listening on ${config.host}:${config.port}`);
   console.error(`MCP endpoint: ${absoluteUrl(config.mcpPath)}`);
+  console.error(`Reports-only MCP endpoint: ${absoluteUrl(config.reportsMcpPath)}`);
   console.error(`SSE-compatible endpoint: ${absoluteUrl(config.ssePath)}`);
 });
 
-async function handleMcpRequest(req, res) {
-  const sessionId = req.headers["mcp-session-id"];
-  let transport = sessionId ? transports.get(sessionId) : undefined;
+function createMcpRouteHandler({ toolProfile }) {
+  const transports = new Map();
 
-  if (sessionId && !transport) {
-    res.status(404).json({ error: "Unknown MCP session." });
-    return;
-  }
+  return async function handleMcpRequest(req, res) {
+    const sessionId = req.headers["mcp-session-id"];
+    let transport = sessionId ? transports.get(sessionId) : undefined;
 
-  if (!transport) {
-    transport = new StreamableHTTPServerTransport({
-      sessionIdGenerator: () => randomUUID(),
-      onsessioninitialized: (id) => {
-        transports.set(id, transport);
-      }
-    });
+    if (sessionId && !transport) {
+      res.status(404).json({ error: "Unknown MCP session." });
+      return;
+    }
 
-    transport.onclose = () => {
-      if (transport.sessionId) {
-        transports.delete(transport.sessionId);
-      }
-    };
+    if (!transport) {
+      transport = new StreamableHTTPServerTransport({
+        sessionIdGenerator: () => randomUUID(),
+        onsessioninitialized: (id) => {
+          transports.set(id, transport);
+        }
+      });
 
-    const server = createItconsMcpServer();
-    await server.connect(transport);
-  }
+      transport.onclose = () => {
+        if (transport.sessionId) {
+          transports.delete(transport.sessionId);
+        }
+      };
 
-  await transport.handleRequest(req, res, req.body);
+      const server = createItconsMcpServer({ toolProfile });
+      await server.connect(transport);
+    }
+
+    await transport.handleRequest(req, res, req.body);
+  };
 }
 
 function requireMcpAuth(req, res, next) {
