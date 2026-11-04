@@ -13,25 +13,50 @@ const port = process.env.ITCONS_HTTP_SMOKE_PORT || "3333";
 const serverUrl = `http://127.0.0.1:${port}/mcp`;
 const readOnlyTools = new Set([
   "itcons_check_connection",
-  "itcons_list_workorder_types",
-  "itcons_list_work_report_models",
-  "itcons_list_projects",
-  "itcons_list_clients",
-  "itcons_list_statuses",
   "itcons_list_users",
+  "itcons_get_user",
+  "itcons_list_clients",
+  "itcons_get_client",
+  "itcons_list_projects",
+  "itcons_get_project",
+  "itcons_list_categories",
+  "itcons_get_category",
   "itcons_list_resources",
-  "itcons_search_workorders",
-  "itcons_list_pending_workorders",
-  "itcons_search_work_reports",
+  "itcons_get_resource",
+  "itcons_list_calendars",
+  "itcons_get_calendar",
+  "itcons_list_leave_types",
+  "itcons_list_work_report_templates",
+  "itcons_get_work_report_template",
+  "itcons_list_work_reports",
+  "itcons_get_work_report",
+  "itcons_get_work_report_as_post_payload",
   "itcons_list_work_reports_by_date",
-  "itcons_list_today_work_reports"
+  "itcons_list_today_work_reports",
+  "itcons_list_work_order_types",
+  "itcons_get_work_order_type",
+  "itcons_list_work_orders",
+  "itcons_get_work_order",
+  "itcons_list_statuses"
 ]);
-const createTools = new Set([
-  "itcons_create_workorder",
+const writeTools = new Set([
   "itcons_create_user",
+  "itcons_update_user",
+  "itcons_create_client",
+  "itcons_update_client",
   "itcons_create_project",
-  "itcons_create_client"
+  "itcons_update_project",
+  "itcons_create_category",
+  "itcons_update_category",
+  "itcons_create_resource",
+  "itcons_update_resource",
+  "itcons_create_work_report",
+  "itcons_update_work_report_metadata",
+  "itcons_replace_work_report_content",
+  "itcons_create_work_order",
+  "itcons_update_work_order"
 ]);
+const expectedToolCount = readOnlyTools.size + writeTools.size;
 
 const child = spawn(process.execPath, [serverPath], {
   cwd: rootDir,
@@ -39,6 +64,7 @@ const child = spawn(process.execPath, [serverPath], {
     ...process.env,
     HOST: "127.0.0.1",
     PORT: port,
+    ITCONS_MCP_PUBLIC_URL: `http://127.0.0.1:${port}`,
     ITCONS_HTTP_AUTH_DISABLED: "1"
   },
   stdio: ["ignore", "pipe", "pipe"]
@@ -46,6 +72,7 @@ const child = spawn(process.execPath, [serverPath], {
 
 try {
   await waitForHealth(`http://127.0.0.1:${port}/health`);
+  await verifyOAuthDiscovery(`http://127.0.0.1:${port}`);
 
   const transport = new StreamableHTTPClientTransport(new URL(serverUrl));
   const client = new Client(
@@ -67,6 +94,14 @@ try {
         tool.annotations?.destructiveHint === undefined;
     })
     .map((tool) => tool.name);
+  const missingOAuthSecurity = tools
+    .filter((tool) => {
+      const schemes = tool.securitySchemes || tool._meta?.securitySchemes;
+      return !schemes?.some((scheme) => {
+        return scheme.type === "oauth2" && scheme.scopes?.includes("itcons:mcp");
+      });
+    })
+    .map((tool) => tool.name);
   const invalidAnnotations = tools
     .filter((tool) => {
       if (readOnlyTools.has(tool.name)) {
@@ -75,7 +110,7 @@ try {
           tool.annotations?.openWorldHint !== false;
       }
 
-      if (createTools.has(tool.name)) {
+      if (writeTools.has(tool.name)) {
         return tool.annotations?.readOnlyHint !== false ||
           tool.annotations?.destructiveHint !== false ||
           tool.annotations?.openWorldHint !== false;
@@ -85,12 +120,16 @@ try {
     })
     .map((tool) => tool.name);
 
-  if (tools.length !== 17) {
-    throw new Error(`Expected 17 tools, discovered ${tools.length}.`);
+  if (tools.length !== expectedToolCount) {
+    throw new Error(`Expected ${expectedToolCount} tools, discovered ${tools.length}.`);
   }
 
   if (missingAnnotations.length > 0) {
     throw new Error(`Missing tool annotations: ${missingAnnotations.join(", ")}`);
+  }
+
+  if (missingOAuthSecurity.length > 0) {
+    throw new Error(`Missing OAuth security metadata: ${missingOAuthSecurity.join(", ")}`);
   }
 
   if (invalidAnnotations.length > 0) {
@@ -139,4 +178,29 @@ async function waitForHealth(url) {
   }
 
   throw new Error("Timed out waiting for HTTP server health check.");
+}
+
+async function verifyOAuthDiscovery(origin) {
+  const [resourceResponse, authorizationResponse] = await Promise.all([
+    fetch(`${origin}/.well-known/oauth-protected-resource`),
+    fetch(`${origin}/.well-known/oauth-authorization-server`)
+  ]);
+  const resource = await resourceResponse.json();
+  const authorization = await authorizationResponse.json();
+
+  if (!resourceResponse.ok || resource.resource !== `${origin}/mcp`) {
+    throw new Error("Invalid OAuth protected resource metadata.");
+  }
+
+  if (!resource.authorization_servers?.includes(`${origin}/`)) {
+    throw new Error("Protected resource metadata does not reference the OAuth issuer.");
+  }
+
+  if (!authorizationResponse.ok || !authorization.code_challenge_methods_supported?.includes("S256")) {
+    throw new Error("OAuth metadata does not advertise PKCE S256.");
+  }
+
+  if (!authorization.token_endpoint_auth_methods_supported?.includes("none")) {
+    throw new Error("OAuth metadata does not support public PKCE clients.");
+  }
 }

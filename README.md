@@ -1,26 +1,25 @@
 # Itcons.app MCP Server
 
-Model Context Protocol server for connecting AI assistants to Itcons.app.
+Model Context Protocol server for connecting AI assistants to Itcons.app API v3.
 
-[Itcons.app](https://itcons.app) is a business operations platform for managing work reports, work orders, projects, clients, users, and related operational resources. It is designed to help teams digitize field and office workflows around daily reports, assignments, task tracking, and service execution.
+[Itcons.app](https://itcons.app) is a business operations platform for managing work reports, work orders, projects, clients, users, calendars, categories, and operational resources.
 
 This package can run in two modes:
 
 - Local `stdio` mode for clients such as Codex, Claude Desktop, and other local MCP hosts.
-- Remote HTTP mode for hosted MCP clients such as ChatGPT Apps or other clients that require a public HTTPS MCP endpoint.
+- Remote HTTP mode for hosted MCP clients or other clients that require a public HTTPS MCP endpoint.
 
-With this MCP server, an assistant can query Itcons.app data, search work reports and work orders, list operational catalogs such as statuses, users, resources, projects, and clients, and create supported Itcons.app records when the configured user has permission to do so.
+The MCP uses the existing Itcons.app username/password login flow (`POST /api/login_check`) and then calls API v3 with Bearer authentication.
 
 ## Features
 
-- Authenticate with `POST /api/login_check`.
-- Use Bearer authentication for Itcons.app API calls.
-- Resolve the API base URL from `ITCONS_DOMAIN`.
-- List statuses, users, resources, clients, projects, work order types, and work report models.
-- Search work reports and work orders.
-- Create clients, projects, users, and work orders.
+- Resolve the tenant from `ITCONS_DOMAIN`.
+- Call API v3 under `https://{ITCONS_DOMAIN}.itcons.app/api/v3`.
+- List and get users, clients, projects, categories, resources, calendars, leave types, work report templates, work reports, work order types, and work orders.
+- Create and patch API v3 users, clients, projects, categories, resources, work reports, and work orders.
+- Keep the existing reports-only HTTP profile at `/reports-mcp` for the current ChatGPT connector.
 
-Webhooks are intentionally not included in this MCP server. The remote HTTP mode is for MCP client traffic, not inbound Itcons.app webhook delivery.
+Webhooks are intentionally not exposed as MCP tools. API v3 documents webhook payloads as outbound deliveries configured inside Itcons.app.
 
 ## Installation
 
@@ -35,13 +34,6 @@ From this repository:
 ```bash
 npm install
 npm run check
-```
-
-If Node was installed with Homebrew and `node`/`npm` are not in your PATH, use:
-
-```bash
-/opt/homebrew/opt/node/bin/npm install
-/opt/homebrew/opt/node/bin/npm run check
 ```
 
 ## Configuration
@@ -71,12 +63,12 @@ ITCONS_TOKEN=ey...
 `ITCONS_API_BASE_URL` is optional. If omitted, the server uses:
 
 ```text
-https://ITCONS_DOMAIN.itcons.app/api
+https://ITCONS_DOMAIN.itcons.app/api/v3
 ```
 
-## MCP Client Example
+If `ITCONS_API_BASE_URL` ends in `/api`, the server appends `/v3` automatically.
 
-Example configuration using a globally installed package:
+## MCP Client Example
 
 ```json
 {
@@ -110,78 +102,63 @@ npm run start:http
 The remote server exposes:
 
 - MCP Streamable HTTP endpoint: `https://mcp.example.com/mcp`
-- Reports-only MCP endpoint for public ChatGPT apps: `https://mcp.example.com/reports-mcp`
+- Reports-only MCP endpoint: `https://mcp.example.com/reports-mcp`
 - SSE-compatible endpoint: `https://mcp.example.com/sse`
 - OAuth authorize URL: `https://mcp.example.com/oauth/authorize`
 - OAuth token URL: `https://mcp.example.com/oauth/token`
 - OAuth dynamic client registration URL: `https://mcp.example.com/oauth/register`
 - Health check: `https://mcp.example.com/health`
 
-For ChatGPT's "Create app" screen, use the public MCP URL:
-
-```text
-https://mcp.example.com/mcp
-```
-
-For a narrow public app focused only on work reports, use:
-
-```text
-https://mcp.example.com/reports-mcp
-```
-
-If a client specifically asks for an SSE URL, use:
-
-```text
-https://mcp.example.com/sse
-```
-
-When the user connects the app, the OAuth login page asks for their Itcons.app email and password. If `ITCONS_DOMAIN_LOOKUP_URL` is configured, the page tries to detect the Itcons.app domain from the email; otherwise the user can type the domain manually. The server validates those credentials with Itcons.app and stores an in-memory session token for subsequent MCP calls.
-
-Example configuration using a local checkout:
-
-```json
-{
-  "mcpServers": {
-    "itcons-app": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/itcons-app-mcp/src/index.js"
-      ],
-      "env": {
-        "ITCONS_DOMAIN": "demo",
-        "ITCONS_USERNAME": "user@example.com",
-        "ITCONS_PASSWORD": "change-me",
-        "ITCONS_TIMEZONE": "Europe/Madrid"
-      }
-    }
-  }
-}
-```
+When a user connects through OAuth, the login page asks for the Itcons.app email/password and domain. If `ITCONS_DOMAIN_LOOKUP_URL` is configured, the page can detect the domain from the email.
 
 ## Tools
 
 Read-only tools:
 
 - `itcons_check_connection`
-- `itcons_list_workorder_types`
-- `itcons_list_work_report_models`
-- `itcons_list_projects`
-- `itcons_list_clients`
-- `itcons_list_statuses`
 - `itcons_list_users`
+- `itcons_get_user`
+- `itcons_list_clients`
+- `itcons_get_client`
+- `itcons_list_projects`
+- `itcons_get_project`
+- `itcons_list_categories`
+- `itcons_get_category`
 - `itcons_list_resources`
-- `itcons_search_workorders`
-- `itcons_list_pending_workorders`
-- `itcons_search_work_reports`
+- `itcons_get_resource`
+- `itcons_list_calendars`
+- `itcons_get_calendar`
+- `itcons_list_leave_types`
+- `itcons_list_work_report_templates`
+- `itcons_get_work_report_template`
+- `itcons_list_work_reports`
+- `itcons_get_work_report`
+- `itcons_get_work_report_as_post_payload`
 - `itcons_list_work_reports_by_date`
 - `itcons_list_today_work_reports`
+- `itcons_list_work_order_types`
+- `itcons_get_work_order_type`
+- `itcons_list_work_orders`
+- `itcons_get_work_order`
+- `itcons_list_statuses`
 
-Create tools:
+Write tools:
 
-- `itcons_create_workorder`
 - `itcons_create_user`
-- `itcons_create_project`
+- `itcons_update_user`
 - `itcons_create_client`
+- `itcons_update_client`
+- `itcons_create_project`
+- `itcons_update_project`
+- `itcons_create_category`
+- `itcons_update_category`
+- `itcons_create_resource`
+- `itcons_update_resource`
+- `itcons_create_work_report`
+- `itcons_update_work_report_metadata`
+- `itcons_replace_work_report_content`
+- `itcons_create_work_order`
+- `itcons_update_work_order`
 
 Reports-only profile tools exposed by `/reports-mcp`:
 
@@ -191,10 +168,9 @@ Reports-only profile tools exposed by `/reports-mcp`:
 - `itcons_list_work_reports_by_date`
 - `itcons_list_today_work_reports`
 
-Tool annotations:
+The reports-only profile keeps its previous tool names for compatibility, but routes them to API v3 work report templates and work reports internally.
 
-- Read-only tools set `readOnlyHint: true`, `destructiveHint: false`, and `openWorldHint: false` because they only read private Itcons.app data.
-- Create tools set `readOnlyHint: false`, `destructiveHint: false`, and `openWorldHint: false` because they create records only inside a private Itcons.app workspace and do not publish to public internet surfaces.
+Patch tools accept a `payload` object with the exact API v3 fields documented by the Postman collection. This keeps the MCP aligned with the API without hiding partial update features such as `add` and `remove` operations.
 
 ## Environment Variables
 
@@ -204,28 +180,22 @@ Tool annotations:
 | `ITCONS_USERNAME` | Yes, unless `ITCONS_TOKEN` is set | Itcons.app username or email. |
 | `ITCONS_PASSWORD` | Yes, unless `ITCONS_TOKEN` is set | Itcons.app password. |
 | `ITCONS_TOKEN` | No | Existing Bearer token. If set, login is skipped. |
-| `ITCONS_API_BASE_URL` | No | Alternative API base URL. |
+| `ITCONS_API_BASE_URL` | No | Alternative API v3 base URL. |
 | `ITCONS_TIMEZONE` | No | Time zone used by `itcons_list_today_work_reports`. Defaults to `Europe/Madrid`. |
 | `PORT` | No | HTTP server port. Defaults to `3000`. |
 | `HOST` | No | HTTP server bind host. Defaults to `127.0.0.1`. |
 | `ITCONS_MCP_PUBLIC_URL` | Yes for remote mode | Public HTTPS origin, for example `https://mcp.example.com`. |
 | `ITCONS_MCP_PATH` | No | Remote MCP endpoint path. Defaults to `/mcp`. |
+| `ITCONS_REPORTS_MCP_PATH` | No | Reports-only MCP endpoint path. Defaults to `/reports-mcp`. |
 | `ITCONS_MCP_SSE_PATH` | No | SSE-compatible endpoint path. Defaults to `/sse`. |
 | `ITCONS_MCP_ALLOWED_HOSTS` | Recommended for remote mode | Comma-separated allowed Host headers, for example `mcp.example.com`. |
 | `ITCONS_OAUTH_CLIENT_ID` | No | OAuth client ID expected by the remote server. Defaults to `itcons-app-chatgpt`. |
 | `ITCONS_OAUTH_CLIENT_SECRET` | Recommended for remote mode | OAuth client secret expected by the remote server. |
 | `ITCONS_OAUTH_CLIENTS_FILE` | Recommended for public apps | JSON file used to persist dynamically registered OAuth clients. |
+| `ITCONS_OAUTH_STATE_FILE` | Required for restart-safe OAuth | Encrypted state file for access and refresh token sessions. |
+| `ITCONS_OAUTH_STATE_SECRET` | Required with the state file | Long random secret used to encrypt OAuth state at rest. |
 | `ITCONS_DOMAIN_LOOKUP_URL` | No | Endpoint used to detect the Itcons.app domain from an email. Defaults to `https://auto.itcons.app/webhook/my-domain`. |
 | `ITCONS_HTTP_AUTH_DISABLED` | No | Set to `1` only for local HTTP smoke tests. Disables remote MCP bearer auth. |
-
-## Notes
-
-- Work order pending status is `4`.
-- `itcons_search_workorders` fetches `/workorders` and applies filters locally.
-- `itcons_list_work_reports_by_date` filters on the `date` field returned by `/2.0/partes`.
-- `itcons_create_workorder` sends `status: 4` and `isArchived: 0`.
-- `itcons_create_user` sends an array payload to `/2.0/users`, matching the current API.
-- `itcons_create_client` sends an array payload to `/clients` and returns the first array item when applicable.
 
 ## Development
 
@@ -247,24 +217,6 @@ Run a local HTTP MCP smoke test:
 npm run smoke:http
 ```
 
-Run a live read-only HTTP smoke test against Itcons.app:
-
-```bash
-ITCONS_DOMAIN=demo \
-ITCONS_USERNAME=user@example.com \
-ITCONS_PASSWORD=change-me \
-npm run smoke:http:live
-```
-
-Run a live OAuth smoke test that simulates a ChatGPT-style connection:
-
-```bash
-ITCONS_DOMAIN=demo \
-ITCONS_USERNAME=user@example.com \
-ITCONS_PASSWORD=change-me \
-npm run smoke:oauth:live
-```
-
 Run a live read-only smoke test against Itcons.app:
 
 ```bash
@@ -274,16 +226,30 @@ ITCONS_PASSWORD=change-me \
 npm run smoke:live
 ```
 
-Publish the public npm package:
+Run a live read-only HTTP smoke test against Itcons.app:
 
 ```bash
-npm publish --access public
+ITCONS_DOMAIN=demo \
+ITCONS_USERNAME=user@example.com \
+ITCONS_PASSWORD=change-me \
+npm run smoke:http:live
+```
+
+Run a live OAuth smoke test that simulates a hosted-client connection:
+
+```bash
+ITCONS_DOMAIN=demo \
+ITCONS_USERNAME=user@example.com \
+ITCONS_PASSWORD=change-me \
+npm run smoke:oauth:live
 ```
 
 ## Security
 
 Do not commit `.env` files or real credentials. The package excludes `.env`, `node_modules`, and debug logs from npm publication.
 
-Create tools perform real writes in Itcons.app. Use them only with credentials and installations where the MCP client is allowed to make changes.
+Write tools perform real changes in Itcons.app. Use them only with credentials and installations where the MCP client is allowed to make changes.
 
-The built-in remote OAuth implementation stores authorization codes and access tokens in memory. Use a single Node.js process for the first deployment, or replace the in-memory maps with persistent storage such as Redis before running multiple replicas.
+For remote deployments, configure `ITCONS_OAUTH_STATE_FILE` and `ITCONS_OAUTH_STATE_SECRET`. Access and refresh token state is then encrypted at rest and survives process restarts. Authorization codes remain short-lived and in memory.
+
+The file-backed OAuth state is designed for a single Node.js process. Use a shared transactional store before running multiple replicas.

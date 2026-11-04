@@ -13,24 +13,24 @@ const JSON_HEADERS = {
   "Content-Type": "application/json"
 };
 
-const PRIORITIES = ["urgente", "alta", "media", "baja"];
-const ROLE_IDS = ["1", "2", "3"];
-const WORKORDER_STATUS = {
-  pendiente: 4,
-  "en-ejecucion": 5,
-  completado: 6,
-  anulado: 7
-};
+const PRIORITIES = ["urgent", "high", "medium", "low", "urgente", "alta", "media", "baja"];
+const USER_ROLES = ["administrator", "mobile_user", "project_manager", "admin", "manager", "user"];
 const READ_ONLY_PRIVATE_TOOL = {
   readOnlyHint: true,
   destructiveHint: false,
   openWorldHint: false
 };
-const CREATE_PRIVATE_TOOL = {
+const WRITE_PRIVATE_TOOL = {
   readOnlyHint: false,
   destructiveHint: false,
   openWorldHint: false
 };
+const OAUTH_SECURITY_SCHEMES = [
+  {
+    type: "oauth2",
+    scopes: ["itcons:mcp"]
+  }
+];
 const REPORTS_ONLY_TOOL_NAMES = [
   "itcons_check_connection",
   "itcons_list_work_report_models",
@@ -38,228 +38,253 @@ const REPORTS_ONLY_TOOL_NAMES = [
   "itcons_list_work_reports_by_date",
   "itcons_list_today_work_reports"
 ];
-const TOOL_DEFINITIONS = [
-  {
-    name: "itcons_check_connection",
-    description: "Validate the configured Itcons.app credentials by listing private work order types without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({})
-  },
-  {
-    name: "itcons_list_workorder_types",
-    description: "List private work order types from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_list_work_report_models",
-    description: "List private work report models from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_list_projects",
-    description: "List private projects and assignments from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_list_clients",
-    description: "List private clients from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_list_statuses",
-    description: "List private work report and work order statuses from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      type: enumProperty("Optional status type filter.", ["pack", "workorder"]),
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_list_users",
-    description: "List private users from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_list_resources",
-    description: "List private resources from Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      limit: integerProperty("Maximum items to return.", 1, 500)
-    })
-  },
-  {
-    name: "itcons_search_workorders",
-    description: "Search private Itcons.app work orders with optional filters without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      status: statusProperty("Optional work order status. Use 4/pendiente, 5/en-ejecucion, 6/completado, or 7/anulado."),
-      project: integerProperty("Optional project/assignment ID."),
-      type: integerProperty("Optional work order type ID."),
-      priority: stringProperty("Optional priority. Accepts urgente, alta, media, baja, or API labels such as priority.alta."),
-      assigned_to: stringProperty("Optional assigned user filter. Matches username, name, email, or user ID."),
-      name: stringProperty("Optional case-insensitive work order name search."),
-      created_by: stringProperty("Optional creator username filter."),
-      limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-      offset: integerProperty("Pagination offset after filtering.", 0, undefined, 0),
-      include_raw: booleanProperty("Include full raw work order objects.", false)
-    })
-  },
-  {
-    name: "itcons_list_pending_workorders",
-    description: "List private pending work orders from Itcons.app. Pending is status 4 and no data is modified.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      project: integerProperty("Optional project/assignment ID."),
-      type: integerProperty("Optional work order type ID."),
-      priority: stringProperty("Optional priority. Accepts urgente, alta, media, baja, or API labels such as priority.alta."),
-      assigned_to: stringProperty("Optional assigned user filter. Matches username, name, email, or user ID."),
-      name: stringProperty("Optional case-insensitive work order name search."),
-      created_by: stringProperty("Optional creator username filter."),
-      limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-      offset: integerProperty("Pagination offset after filtering.", 0, undefined, 0),
-      include_raw: booleanProperty("Include full raw work order objects.", false)
-    })
-  },
-  {
-    name: "itcons_search_work_reports",
-    description: "Search private work reports by ID or model in Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      id: integerProperty("Work report ID."),
-      model: integerProperty("Work report model ID."),
-      limit: integerProperty("Maximum items to return.", 1, 500, 100),
-      offset: integerProperty("Pagination offset.", 0, undefined, 0)
-    })
-  },
-  {
-    name: "itcons_list_work_reports_by_date",
-    description: "List private work reports matching a specific date in Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema(
-      {
-        date: stringProperty("Report date in YYYY-MM-DD or DD/MM/YYYY format."),
-        model: integerProperty("Optional work report model ID."),
-        limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-        offset: integerProperty("Pagination offset for the API request.", 0, undefined, 0)
-      },
-      ["date"]
-    )
-  },
-  {
-    name: "itcons_list_today_work_reports",
-    description: "List today's private work reports in Itcons.app without modifying data.",
-    annotations: READ_ONLY_PRIVATE_TOOL,
-    inputSchema: objectSchema({
-      model: integerProperty("Optional work report model ID."),
-      limit: integerProperty("Maximum matching items to return.", 1, 500, 100),
-      offset: integerProperty("Pagination offset for the API request.", 0, undefined, 0)
-    })
-  },
-  {
-    name: "itcons_create_workorder",
-    description: "Create a new work order inside the user's private Itcons.app workspace.",
-    annotations: CREATE_PRIVATE_TOOL,
-    inputSchema: objectSchema(
-      {
-        name: stringProperty("Work order name."),
-        project: integerProperty("Project/assignment ID."),
-        type: integerProperty("Work order type ID."),
-        priority: enumProperty("Priority.", PRIORITIES),
-        info: stringProperty("Optional work order description."),
-        erpid: stringProperty("Optional ERP ID.")
-      },
-      ["name", "project", "type"]
-    )
-  },
-  {
-    name: "itcons_create_user",
-    description: "Create a new user inside the user's private Itcons.app workspace.",
-    annotations: CREATE_PRIVATE_TOOL,
-    inputSchema: objectSchema(
-      {
-        username: stringProperty("Username."),
-        email: stringProperty("Email address.", "email"),
-        password: stringProperty("Initial password."),
-        roles: enumProperty("Role ID: 1 administrator, 2 mobile user, 3 project manager.", ROLE_IDS, "2"),
-        firstname: stringProperty("First name."),
-        lastname: stringProperty("Last name."),
-        dni: stringProperty("DNI/NIF."),
-        erpid: stringProperty("Optional ERP ID."),
-        workorder_active: booleanProperty("Can use work orders.", true),
-        workorder_create: booleanProperty("Can create work orders.", true),
-        projects_create: booleanProperty("Can create projects.", true),
-        modelo_id: arrayProperty("Work report model IDs.", {
-          type: "integer"
-        })
-      },
-      ["username", "email", "password"]
-    )
-  },
-  {
-    name: "itcons_create_project",
-    description: "Create a new project or assignment inside the user's private Itcons.app workspace.",
-    annotations: CREATE_PRIVATE_TOOL,
-    inputSchema: objectSchema(
-      {
-        name: stringProperty("Project name."),
-        email: stringProperty("Optional project email.", "email"),
-        info: stringProperty("Optional project information."),
-        erpid: stringProperty("Optional ERP ID."),
-        client: integerProperty("Optional client ID.")
-      },
-      ["name"]
-    )
-  },
-  {
-    name: "itcons_create_client",
-    description: "Create a new client inside the user's private Itcons.app workspace.",
-    annotations: CREATE_PRIVATE_TOOL,
-    inputSchema: objectSchema(
-      {
-        name: stringProperty("Client name."),
-        address: stringProperty("Address."),
-        cif: stringProperty("CIF/NIF."),
-        phone: stringProperty("Phone."),
-        email: stringProperty("Email address.", "email"),
-        erpid: stringProperty("Optional ERP ID.")
-      },
-      ["name"]
-    )
-  }
+const REPORTS_COMPAT_TOOL_NAMES = [
+  "itcons_list_work_report_models",
+  "itcons_search_work_reports"
 ];
+
+const TOOL_DEFINITIONS = [
+  readTool("itcons_check_connection", "Validate the configured Itcons.app credentials against API v3 without modifying data.", {}),
+
+  readTool("itcons_list_users", "List users from Itcons.app API v3.", paginationSchema()),
+  readTool("itcons_get_user", "Get one user by API v3 ID.", idSchema("user_id")),
+  writeTool("itcons_create_user", "Create a user in Itcons.app API v3.", objectSchema({
+    username: stringProperty("Username."),
+    email: stringProperty("Email address.", "email"),
+    role: enumProperty("User role.", USER_ROLES, "mobile_user"),
+    password: stringProperty("Optional initial password."),
+    first_name: stringProperty("First name."),
+    last_name: stringProperty("Last name."),
+    legal_id: stringProperty("Legal ID, DNI or NIF."),
+    erpid: stringProperty("ERP identifier."),
+    leave_manager_email: stringProperty("Leave manager email.", "email"),
+    calendar_id: integerProperty("Calendar ID."),
+    enabled: booleanProperty("Whether the user is enabled.", true),
+    all_assignments: booleanProperty("Whether the user can access all projects.", false),
+    report_template_ids: arrayProperty("Work report template IDs.", { type: "integer" })
+  }, ["username", "email"])),
+  writeTool("itcons_update_user", "Patch a user in Itcons.app API v3.", patchSchema("user_id")),
+
+  readTool("itcons_list_clients", "List clients from Itcons.app API v3.", paginationSchema()),
+  readTool("itcons_get_client", "Get one client by API v3 ID.", idSchema("client_id")),
+  writeTool("itcons_create_client", "Create a client in Itcons.app API v3.", objectSchema({
+    name: stringProperty("Client name."),
+    address: stringProperty("Address."),
+    tax_id: stringProperty("Tax ID/CIF/NIF."),
+    phone: stringProperty("Phone."),
+    email: stringProperty("Email address.", "email"),
+    erpid: stringProperty("ERP identifier.")
+  }, ["name"])),
+  writeTool("itcons_update_client", "Patch a client in Itcons.app API v3.", patchSchema("client_id")),
+
+  readTool("itcons_list_projects", "List projects from Itcons.app API v3.", objectSchema({
+    ...paginationSchema().properties,
+    is_archived: booleanProperty("Filter archived projects.")
+  })),
+  readTool("itcons_get_project", "Get one project by API v3 ID.", idSchema("project_id")),
+  writeTool("itcons_create_project", "Create a project in Itcons.app API v3.", objectSchema({
+    name: stringProperty("Project name."),
+    erpid: stringProperty("ERP identifier."),
+    client_id: integerProperty("Client ID."),
+    client_erpid: stringProperty("Client ERP identifier."),
+    email: stringProperty("Project email.", "email"),
+    info: stringProperty("Project notes."),
+    kpi: stringProperty("KPI."),
+    signer: stringProperty("Signer."),
+    cost_group_required: booleanProperty("Whether cost group is required."),
+    users: arrayProperty("Assigned users. Each item may contain user_id, user_email or user_erpid.", looseObjectSchema()),
+    areas: arrayProperty("Project areas.", looseObjectSchema()),
+    links: arrayProperty("Project links.", looseObjectSchema()),
+    started_at: stringProperty("Start date in YYYY-MM-DD format."),
+    finished_at: stringProperty("Finish date in YYYY-MM-DD format."),
+    is_archived: booleanProperty("Whether the project is archived.", false)
+  }, ["name"])),
+  writeTool("itcons_update_project", "Patch a project in Itcons.app API v3.", patchSchema("project_id")),
+
+  readTool("itcons_list_categories", "List resource/work report categories from Itcons.app API v3.", paginationSchema()),
+  readTool("itcons_get_category", "Get one category by API v3 ID.", idSchema("category_id")),
+  writeTool("itcons_create_category", "Create a category in Itcons.app API v3.", objectSchema({
+    name: stringProperty("Category name."),
+    parent_id: nullableIntegerProperty("Parent category ID."),
+    show_in_work_order: booleanProperty("Whether the category is visible in work orders."),
+    resource_attribute_ids: arrayProperty("Resource attribute IDs.", { type: "integer" }),
+    work_report_attributes: arrayProperty("Work report attribute mappings.", looseObjectSchema())
+  }, ["name"])),
+  writeTool("itcons_update_category", "Patch a category in Itcons.app API v3.", patchSchema("category_id")),
+
+  readTool("itcons_list_resources", "List resources from Itcons.app API v3.", objectSchema({
+    ...paginationSchema().properties,
+    include_subcategories: booleanProperty("Include resources from subcategories.", false),
+    is_archived: booleanProperty("Filter archived resources.")
+  })),
+  readTool("itcons_get_resource", "Get one resource by API v3 ID.", idSchema("resource_id")),
+  writeTool("itcons_create_resource", "Create a resource in Itcons.app API v3.", objectSchema({
+    name: stringProperty("Resource name."),
+    erpid: stringProperty("ERP identifier."),
+    category_id: integerProperty("Category ID."),
+    is_archived: booleanProperty("Whether the resource is archived.", false),
+    attributes: arrayProperty("Resource attribute values.", looseObjectSchema())
+  }, ["name", "category_id"])),
+  writeTool("itcons_update_resource", "Patch a resource in Itcons.app API v3.", patchSchema("resource_id")),
+
+  readTool("itcons_list_calendars", "List calendars from Itcons.app API v3.", paginationSchema()),
+  readTool("itcons_get_calendar", "Get one calendar by API v3 ID.", idSchema("calendar_id")),
+  readTool("itcons_list_leave_types", "List leave types from Itcons.app API v3.", paginationSchema()),
+
+  readTool("itcons_list_work_report_templates", "List work report templates from Itcons.app API v3.", paginationSchema()),
+  readTool("itcons_list_work_report_models", "Compatibility alias for reports-only clients. Lists API v3 work report templates.", paginationSchema()),
+  readTool("itcons_get_work_report_template", "Get one work report template by API v3 ID.", idSchema("template_id")),
+  readTool("itcons_list_work_reports", "List work reports from Itcons.app API v3.", objectSchema({
+    ...paginationSchema(100).properties,
+    is_archived: booleanProperty("Filter archived work reports."),
+    template_id: integerProperty("Filter by template ID."),
+    project_id: integerProperty("Filter by project ID."),
+    project_erpid: stringProperty("Filter by project ERP identifier."),
+    user_id: integerProperty("Filter by user ID."),
+    user_erpid: stringProperty("Filter by user ERP identifier."),
+    status_id: integerProperty("Filter by status ID."),
+    status: stringProperty("Filter by status slug."),
+    date: stringProperty("Compatibility alias for an exact report date in YYYY-MM-DD or DD/MM/YYYY format."),
+    date_from: stringProperty("Filter reports on or after this date in YYYY-MM-DD format."),
+    date_to: stringProperty("Filter reports on or before this date in YYYY-MM-DD format."),
+    updated_since: stringProperty("Filter reports updated since this ISO 8601 date/time.")
+  })),
+  readTool("itcons_search_work_reports", "Compatibility alias for reports-only clients. Search API v3 work reports by ID or template/model ID.", objectSchema({
+    id: integerProperty("Optional work report ID."),
+    model: integerProperty("Optional legacy model/template ID."),
+    template_id: integerProperty("Optional work report template ID."),
+    limit: integerProperty("Maximum items to return.", 1, 500, 100),
+    page: integerProperty("Page number.", 1, undefined, 1)
+  })),
+  readTool("itcons_get_work_report", "Get one work report by API v3 ID.", idSchema("work_report_id")),
+  readTool("itcons_get_work_report_as_post_payload", "Get a work report converted to the API v3 create payload shape.", idSchema("work_report_id")),
+  readTool("itcons_list_work_reports_by_date", "List work reports matching a date in Itcons.app API v3.", objectSchema({
+    date: stringProperty("Report date in YYYY-MM-DD or DD/MM/YYYY format."),
+    model: integerProperty("Optional legacy model/template ID."),
+    template_id: integerProperty("Optional work report template ID."),
+    limit: integerProperty("Maximum items to return.", 1, 500, 100),
+    page: integerProperty("Page number.", 1, undefined, 1)
+  }, ["date"])),
+  readTool("itcons_list_today_work_reports", "List today's work reports in Itcons.app API v3.", objectSchema({
+    model: integerProperty("Optional legacy model/template ID."),
+    template_id: integerProperty("Optional work report template ID."),
+    limit: integerProperty("Maximum items to return.", 1, 500, 100),
+    page: integerProperty("Page number.", 1, undefined, 1)
+  })),
+  writeTool("itcons_create_work_report", "Create a work report in Itcons.app API v3.", objectSchema({
+    date: stringProperty("Report date in YYYY-MM-DD format."),
+    identifier: integerProperty("Optional custom numeric identifier."),
+    template_id: integerProperty("Work report template ID."),
+    project_id: integerProperty("Project ID."),
+    user_id: integerProperty("User ID."),
+    notify: booleanProperty("Whether to notify after creation.", false),
+    fields: arrayProperty("Header field values.", looseObjectSchema()),
+    lines: arrayProperty("Report lines.", looseObjectSchema()),
+    notes: arrayProperty("Report notes.", looseObjectSchema())
+  }, ["date", "template_id"])),
+  writeTool("itcons_update_work_report_metadata", "Patch work report metadata in Itcons.app API v3.", patchSchema("work_report_id")),
+  writeTool("itcons_replace_work_report_content", "Replace work report fields, lines and notes in Itcons.app API v3.", objectSchema({
+    work_report_id: integerProperty("Work report ID."),
+    fields: arrayProperty("Replacement header field values.", looseObjectSchema()),
+    lines: arrayProperty("Replacement report lines.", looseObjectSchema()),
+    notes: arrayProperty("Replacement report notes.", looseObjectSchema())
+  }, ["work_report_id"])),
+
+  readTool("itcons_list_work_order_types", "List work order types from Itcons.app API v3.", paginationSchema()),
+  readTool("itcons_get_work_order_type", "Get one work order type by API v3 ID.", idSchema("work_order_type_id")),
+  readTool("itcons_list_work_orders", "List work orders from Itcons.app API v3.", objectSchema({
+    ...paginationSchema().properties,
+    project_id: integerProperty("Filter by project ID."),
+    work_order_type_id: integerProperty("Filter by work order type ID."),
+    status_id: integerProperty("Filter by status ID."),
+    is_archived: booleanProperty("Filter archived work orders.")
+  })),
+  readTool("itcons_get_work_order", "Get one work order by API v3 ID.", idSchema("work_order_id")),
+  writeTool("itcons_create_work_order", "Create a work order in Itcons.app API v3.", objectSchema({
+    name: stringProperty("Work order name."),
+    work_order_type_id: integerProperty("Work order type ID."),
+    project_id: nullableIntegerProperty("Project ID."),
+    status_id: integerProperty("Status ID."),
+    erpid: stringProperty("ERP identifier."),
+    priority: enumProperty("Priority.", PRIORITIES),
+    planned_started_at: stringProperty("Planned start date/time."),
+    planned_finished_at: stringProperty("Planned finish date/time."),
+    note: stringProperty("Work order note."),
+    users: arrayProperty("Assigned users. Each item may contain id, email or erpid.", looseObjectSchema()),
+    locations: arrayProperty("Locations with latitude and longitude.", looseObjectSchema())
+  }, ["name", "work_order_type_id"])),
+  writeTool("itcons_update_work_order", "Patch a work order in Itcons.app API v3.", patchSchema("work_order_id")),
+
+  readTool("itcons_list_statuses", "List work order statuses. API v3 currently exposes status IDs through work order data/types, so this returns a local compatibility map.", objectSchema({}))
+];
+
 const TOOL_HANDLERS = {
-  itcons_check_connection: (args, context) => listResource("/workorderstypes", args.limit || 1, context),
-  itcons_list_workorder_types: (args, context) => listResource("/workorderstypes", args.limit, context),
-  itcons_list_work_report_models: (args, context) => listResource("/2.0/modelosparte", args.limit, context),
-  itcons_list_projects: (args, context) => listResource("/obras", args.limit, context),
-  itcons_list_clients: (args, context) => listResource("/clients", args.limit, context),
-  itcons_list_statuses: (args, context) => listStatuses(args, context),
-  itcons_list_users: (args, context) => listResource("/2.0/users", args.limit, context),
-  itcons_list_resources: (args, context) => listResource("/resources", args.limit, context),
-  itcons_search_workorders: (args, context) => searchWorkorders(args, context),
-  itcons_list_pending_workorders: (args, context) => listPendingWorkorders(args, context),
+  itcons_check_connection: (args, context) => listResource("/work-order-types", { limit: 1 }, context),
+
+  itcons_list_users: (args, context) => listResource("/users", args, context),
+  itcons_get_user: (args, context) => getResource("/users", args.user_id, context),
+  itcons_create_user: (args, context) => createResource("/users", userPayload(args), context),
+  itcons_update_user: (args, context) => patchResource("/users", args.user_id, args.payload, context),
+
+  itcons_list_clients: (args, context) => listResource("/clients", args, context),
+  itcons_get_client: (args, context) => getResource("/clients", args.client_id, context),
+  itcons_create_client: (args, context) => createResource("/clients", args, context),
+  itcons_update_client: (args, context) => patchResource("/clients", args.client_id, args.payload, context),
+
+  itcons_list_projects: (args, context) => listResource("/projects", args, context),
+  itcons_get_project: (args, context) => getResource("/projects", args.project_id, context),
+  itcons_create_project: (args, context) => createResource("/projects", args, context),
+  itcons_update_project: (args, context) => patchResource("/projects", args.project_id, args.payload, context),
+
+  itcons_list_categories: (args, context) => listResource("/categories", args, context),
+  itcons_get_category: (args, context) => getResource("/categories", args.category_id, context),
+  itcons_create_category: (args, context) => createResource("/categories", args, context),
+  itcons_update_category: (args, context) => patchResource("/categories", args.category_id, args.payload, context),
+
+  itcons_list_resources: (args, context) => listResource("/resources", args, context),
+  itcons_get_resource: (args, context) => getResource("/resources", args.resource_id, context),
+  itcons_create_resource: (args, context) => createResource("/resources", args, context),
+  itcons_update_resource: (args, context) => patchResource("/resources", args.resource_id, args.payload, context),
+
+  itcons_list_calendars: (args, context) => listResource("/calendars", args, context),
+  itcons_get_calendar: (args, context) => getResource("/calendars", args.calendar_id, context),
+  itcons_list_leave_types: (args, context) => listResource("/leave-types", args, context),
+
+  itcons_list_work_report_templates: (args, context) => listResource("/work-report-templates", args, context),
+  itcons_list_work_report_models: (args, context) => listResource("/work-report-templates", args, context),
+  itcons_get_work_report_template: (args, context) => getResource("/work-report-templates", args.template_id, context),
+  itcons_list_work_reports: (args, context) => listResource("/work-reports", buildWorkReportListQuery(args), context),
   itcons_search_work_reports: (args, context) => searchWorkReports(args, context),
-  itcons_list_work_reports_by_date: (args, context) => listWorkReportsByDate(args, context),
-  itcons_list_today_work_reports: (args, context) => listTodayWorkReports(args, context),
-  itcons_create_workorder: (args, context) => createWorkorder(args, context),
-  itcons_create_user: (args, context) => createUser(args, context),
-  itcons_create_project: (args, context) => createProject(args, context),
-  itcons_create_client: (args, context) => createClient(args, context)
+  itcons_get_work_report: (args, context) => getResource("/work-reports", args.work_report_id, context),
+  itcons_get_work_report_as_post_payload: (args, context) => apiRequest(`/work-reports/${args.work_report_id}/as-post-payload`, {}, context),
+  itcons_list_work_reports_by_date: (args, context) => listResource("/work-reports", buildWorkReportListQuery({
+    ...args,
+    date: normalizeReportDate(args.date)
+  }), context),
+  itcons_list_today_work_reports: (args, context) => listResource("/work-reports", buildWorkReportListQuery({
+    ...args,
+    date: todayReportDate(context)
+  }), context),
+  itcons_create_work_report: (args, context) => createResource("/work-reports", args, context),
+  itcons_update_work_report_metadata: (args, context) => patchResource("/work-reports", args.work_report_id, args.payload, context),
+  itcons_replace_work_report_content: (args, context) => patchResource("/work-reports", args.work_report_id, pick(args, ["fields", "lines", "notes"]), context),
+
+  itcons_list_work_order_types: (args, context) => listResource("/work-order-types", args, context),
+  itcons_get_work_order_type: (args, context) => getResource("/work-order-types", args.work_order_type_id, context),
+  itcons_list_work_orders: (args, context) => listResource("/work-orders", args, context),
+  itcons_get_work_order: (args, context) => getResource("/work-orders", args.work_order_id, context),
+  itcons_create_work_order: (args, context) => createResource("/work-orders", args, context),
+  itcons_update_work_order: (args, context) => patchResource("/work-orders", args.work_order_id, args.payload, context),
+
+  itcons_list_statuses: () => ({
+    note: "API v3 does not document a standalone statuses endpoint in the Postman collection.",
+    work_order_statuses: [
+      { id: 4, slug: "pending", legacy_slug: "pendiente" },
+      { id: 5, slug: "in_progress", legacy_slug: "en-ejecucion" },
+      { id: 6, slug: "completed", legacy_slug: "completado" },
+      { id: 7, slug: "cancelled", legacy_slug: "anulado" }
+    ]
+  })
 };
 
 let cachedToken = process.env.ITCONS_TOKEN || null;
@@ -270,7 +295,7 @@ export function createItconsMcpServer(options = {}) {
   const server = new Server(
     {
       name: "itcons-app-mcp-server",
-      version: "1.0.0"
+      version: "3.0.0"
     },
     {
       capabilities: {
@@ -324,7 +349,35 @@ function allowedToolNameSet(toolProfile) {
     return new Set(REPORTS_ONLY_TOOL_NAMES);
   }
 
-  return new Set(TOOL_DEFINITIONS.map((tool) => tool.name));
+  return new Set(TOOL_DEFINITIONS
+    .map((tool) => tool.name)
+    .filter((toolName) => !REPORTS_COMPAT_TOOL_NAMES.includes(toolName)));
+}
+
+function readTool(name, description, inputSchema) {
+  return {
+    name,
+    description,
+    annotations: READ_ONLY_PRIVATE_TOOL,
+    securitySchemes: OAUTH_SECURITY_SCHEMES,
+    _meta: {
+      securitySchemes: OAUTH_SECURITY_SCHEMES
+    },
+    inputSchema: objectSchema(inputSchema.properties || inputSchema, inputSchema.required || [])
+  };
+}
+
+function writeTool(name, description, inputSchema) {
+  return {
+    name,
+    description,
+    annotations: WRITE_PRIVATE_TOOL,
+    securitySchemes: OAUTH_SECURITY_SCHEMES,
+    _meta: {
+      securitySchemes: OAUTH_SECURITY_SCHEMES
+    },
+    inputSchema: objectSchema(inputSchema.properties || inputSchema, inputSchema.required || [])
+  };
 }
 
 function objectSchema(properties, required = []) {
@@ -334,6 +387,37 @@ function objectSchema(properties, required = []) {
     required,
     additionalProperties: false
   };
+}
+
+function looseObjectSchema() {
+  return {
+    type: "object",
+    additionalProperties: true
+  };
+}
+
+function patchSchema(idName) {
+  return objectSchema({
+    [idName]: integerProperty(`${idName} value.`),
+    payload: {
+      type: "object",
+      description: "API v3 PATCH body. Use the exact fields documented by the Postman collection.",
+      additionalProperties: true
+    }
+  }, [idName, "payload"]);
+}
+
+function idSchema(idName) {
+  return objectSchema({
+    [idName]: integerProperty(`${idName} value.`)
+  }, [idName]);
+}
+
+function paginationSchema(defaultLimit = 50) {
+  return objectSchema({
+    page: integerProperty("Page number.", 1, undefined, 1),
+    limit: integerProperty("Maximum items to return.", 1, 500, defaultLimit)
+  });
 }
 
 function stringProperty(description, format) {
@@ -354,12 +438,22 @@ function integerProperty(description, minimum, maximum, defaultValue) {
   });
 }
 
-function booleanProperty(description, defaultValue) {
+function nullableIntegerProperty(description) {
   return {
+    oneOf: [
+      { type: "integer" },
+      { type: "null" }
+    ],
+    description
+  };
+}
+
+function booleanProperty(description, defaultValue) {
+  return compact({
     type: "boolean",
     description,
     default: defaultValue
-  };
+  });
 }
 
 function enumProperty(description, values, defaultValue) {
@@ -369,22 +463,6 @@ function enumProperty(description, values, defaultValue) {
     enum: values,
     default: defaultValue
   });
-}
-
-function statusProperty(description) {
-  return {
-    oneOf: [
-      {
-        type: "integer",
-        enum: [4, 5, 6, 7]
-      },
-      {
-        type: "string",
-        enum: ["4", "5", "6", "7", "pendiente", "en-ejecucion", "completado", "anulado"]
-      }
-    ],
-    description
-  };
 }
 
 function arrayProperty(description, items) {
@@ -421,171 +499,89 @@ function itconsContext(extra) {
   };
 }
 
-async function listResource(pathname, limit = 500, context = {}) {
-  const response = await apiRequest(pathname, {}, context);
-  const items = extractCollection(response);
-  return limitCollection(items, limit);
+async function listResource(pathname, args = {}, context = {}) {
+  const query = dropUndefined({
+    page: args.page ?? 1,
+    limit: args.limit ?? 50,
+    is_archived: args.is_archived,
+    include_subcategories: args.include_subcategories,
+    template_id: args.template_id,
+    project_id: args.project_id,
+    project_erpid: args.project_erpid,
+    user_id: args.user_id,
+    user_erpid: args.user_erpid,
+    date_from: args.date_from,
+    date_to: args.date_to,
+    updated_since: args.updated_since,
+    work_order_type_id: args.work_order_type_id,
+    status_id: args.status_id,
+    status: args.status
+  });
+
+  return apiRequest(pathname, { query }, context);
 }
 
-async function listStatuses(args, context = {}) {
-  const response = await apiRequest("/status", {}, context);
-  const items = extractCollection(response);
-  const statuses = Array.isArray(items) ? items : [];
-  const filteredItems = args.type
-    ? statuses.filter((status) => status?.type === args.type)
-    : statuses;
-
-  return limitCollection(filteredItems, args.limit);
+async function getResource(pathname, id, context = {}) {
+  assertId(id);
+  return apiRequest(`${pathname}/${id}`, {}, context);
 }
 
-async function searchWorkorders(args, context = {}) {
-  const response = await apiRequest("/workorders", {}, context);
-  const items = extractCollection(response);
-  const workorders = Array.isArray(items) ? items : [];
-  const filteredItems = filterWorkorders(workorders, args);
-  const offset = normalizeOffset(args.offset);
-  const paginatedItems = limitCollection(filteredItems.slice(offset), args.limit ?? 100);
-
-  return {
-    count: filteredItems.length,
-    offset,
-    limit: normalizeLimit(args.limit ?? 100),
-    data: paginatedItems.map((item) => normalizeWorkorder(item, args.include_raw))
-  };
-}
-
-async function listPendingWorkorders(args, context = {}) {
-  return searchWorkorders({
-    ...args,
-    status: 4
+async function createResource(pathname, body, context = {}) {
+  return apiRequest(pathname, {
+    method: "POST",
+    body: dropUndefined(body)
   }, context);
+}
+
+async function patchResource(pathname, id, body, context = {}) {
+  assertId(id);
+  return apiRequest(`${pathname}/${id}`, {
+    method: "PATCH",
+    body: dropUndefined(body)
+  }, context);
+}
+
+function userPayload(args) {
+  const payload = dropUndefined(args);
+
+  if (!payload.role) {
+    payload.role = "mobile_user";
+  }
+
+  return payload;
+}
+
+export function buildWorkReportListQuery(args) {
+  const exactDate = args.date === undefined ? undefined : normalizeReportDate(args.date);
+
+  return dropUndefined({
+    page: args.page ?? 1,
+    limit: args.limit ?? 100,
+    is_archived: args.is_archived,
+    template_id: args.template_id ?? args.model,
+    project_id: args.project_id,
+    project_erpid: args.project_erpid,
+    user_id: args.user_id,
+    user_erpid: args.user_erpid,
+    status_id: args.status_id,
+    status: args.status,
+    date_from: args.date_from === undefined ? exactDate : normalizeReportDate(args.date_from),
+    date_to: args.date_to === undefined ? exactDate : normalizeReportDate(args.date_to),
+    updated_since: args.updated_since
+  });
 }
 
 async function searchWorkReports(args, context = {}) {
-  const params = new URLSearchParams();
-  addOptionalParam(params, "id", args.id);
-  addOptionalParam(params, "model", args.model);
-  addOptionalParam(params, "limit", args.limit ?? 100);
-  addOptionalParam(params, "offset", args.offset ?? 0);
+  if (args.id) {
+    return getResource("/work-reports", args.id, context);
+  }
 
-  return apiRequest(`/2.0/partes?${params.toString()}`, {}, context);
-}
-
-async function listWorkReportsByDate(args, context = {}) {
-  assertRequired(args, ["date"]);
-
-  const date = normalizeReportDate(args.date);
-  const response = await searchWorkReports(args, context);
-  const items = extractCollection(response);
-  const filteredItems = Array.isArray(items)
-    ? items.filter((item) => item?.date === date)
-    : [];
-
-  return {
-    date,
-    count: filteredItems.length,
-    data: limitCollection(filteredItems, args.limit)
-  };
-}
-
-async function listTodayWorkReports(args, context = {}) {
-  return listWorkReportsByDate({
-    ...args,
-    date: todayReportDate(context)
-  }, context);
-}
-
-async function createWorkorder(args, context = {}) {
-  assertRequired(args, ["name", "project", "type"]);
-  assertEnum(args.priority, PRIORITIES, "priority");
-
-  return apiRequest("/workorders", {
-    method: "POST",
-    body: dropUndefined({
-      name: args.name,
-      project: args.project,
-      isArchived: 0,
-      info: emptyToUndefined(args.info),
-      erpid: emptyToUndefined(args.erpid),
-      status: 4,
-      type: args.type,
-      priority: emptyToUndefined(args.priority)
-    })
-  }, context);
-}
-
-async function createUser(args, context = {}) {
-  assertRequired(args, ["username", "email", "password"]);
-  assertEnum(args.roles ?? "2", ROLE_IDS, "roles");
-
-  const response = await apiRequest("/2.0/users", {
-    method: "POST",
-    body: [
-      {
-        id: -1,
-        username: args.username,
-        email: args.email,
-        password: args.password,
-        roles: args.roles ?? "2",
-        firstname: emptyToUndefined(args.firstname),
-        lastname: emptyToUndefined(args.lastname),
-        dni: args.dni ?? "",
-        erpid: args.erpid ?? "",
-        allAssignments: 0,
-        enabled: "true",
-        workorder_active: args.workorder_active ?? true,
-        workorder_create: args.workorder_create ?? true,
-        projects_create: args.projects_create ?? true,
-        modelo_id: args.modelo_id ?? []
-      }
-    ]
-  }, context);
-
-  return Array.isArray(response) ? response[0] : response;
-}
-
-async function createProject(args, context = {}) {
-  assertRequired(args, ["name"]);
-
-  return apiRequest("/assignments", {
-    method: "POST",
-    body: dropUndefined({
-      id: -1,
-      name: args.name,
-      email: emptyToUndefined(args.email),
-      info: emptyToUndefined(args.info),
-      erpid: emptyToUndefined(args.erpid),
-      client: emptyToUndefined(args.client),
-      cost_group_obligatory: "0",
-      isArchived: "0"
-    })
-  }, context);
-}
-
-async function createClient(args, context = {}) {
-  assertRequired(args, ["name"]);
-
-  const response = await apiRequest("/clients", {
-    method: "POST",
-    body: [
-      {
-        id: -1,
-        name: args.name,
-        address: emptyToUndefined(args.address),
-        cif: emptyToUndefined(args.cif),
-        phone: emptyToUndefined(args.phone),
-        email: emptyToUndefined(args.email),
-        erpid: args.erpid ?? null
-      }
-    ]
-  }, context);
-
-  return Array.isArray(response) ? response[0] : response;
+  return listResource("/work-reports", buildWorkReportListQuery(args), context);
 }
 
 async function apiRequest(pathname, options = {}, context = {}) {
   const token = await getToken(context);
-  const url = buildApiUrl(pathname, context);
+  const url = buildApiUrl(pathname, options.query, context);
   const response = await fetch(url, {
     method: options.method || "GET",
     headers: {
@@ -598,12 +594,19 @@ async function apiRequest(pathname, options = {}, context = {}) {
   return parseResponse(response);
 }
 
-function buildApiUrl(pathname, context = {}) {
+function buildApiUrl(pathname, query = {}, context = {}) {
   const base = apiBaseUrl(context);
   const cleanBase = base.replace(/\/+$/, "");
   const cleanPath = String(pathname).replace(/^\/+/, "");
+  const url = new URL(`${cleanBase}/${cleanPath}`);
 
-  return `${cleanBase}/${cleanPath}`;
+  for (const [key, value] of Object.entries(query || {})) {
+    if (value !== undefined && value !== null && value !== "") {
+      url.searchParams.set(key, String(value));
+    }
+  }
+
+  return url.toString();
 }
 
 async function getToken(context = {}) {
@@ -629,7 +632,8 @@ export async function loginToItcons({ domain, username, password }) {
     throw new Error("domain, username, and password are required.");
   }
 
-  const response = await fetch(`https://${domain}.itcons.app/api/login_check`, {
+  const loginUrl = process.env.ITCONS_LOGIN_URL || "https://" + domain + ".itcons.app/api/login_check";
+  const response = await fetch(loginUrl, {
     method: "POST",
     headers: {
       Accept: "application/json",
@@ -671,16 +675,26 @@ function safeJsonParse(text) {
 
 function apiBaseUrl(context = {}) {
   if (context.apiBaseUrl) {
-    return String(context.apiBaseUrl).replace(/\/+$/, "");
+    return normalizeApiBaseUrl(context.apiBaseUrl);
   }
 
   if (process.env.ITCONS_API_BASE_URL) {
-    return process.env.ITCONS_API_BASE_URL.replace(/\/+$/, "");
+    return normalizeApiBaseUrl(process.env.ITCONS_API_BASE_URL);
   }
 
   const domain = context.domain || requiredEnv("ITCONS_DOMAIN");
 
-  return `https://${domain}.itcons.app/api`;
+  return `https://${domain}.itcons.app/api/v3`;
+}
+
+function normalizeApiBaseUrl(value) {
+  const clean = String(value).replace(/\/+$/, "");
+
+  if (clean.endsWith("/api")) {
+    return `${clean}/v3`;
+  }
+
+  return clean;
 }
 
 function requiredEnv(name) {
@@ -692,241 +706,44 @@ function requiredEnv(name) {
   return value;
 }
 
-function extractCollection(response) {
-  if (Array.isArray(response)) {
-    return response;
+function normalizeReportDate(date) {
+  const text = String(date || "").trim();
+  const match = text.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
+
+  if (match) {
+    return `${match[3]}-${match[2]}-${match[1]}`;
   }
 
-  if (Array.isArray(response?.data)) {
-    return response.data;
-  }
-
-  return response;
-}
-
-function limitCollection(items, limit) {
-  if (!Array.isArray(items)) {
-    return items;
-  }
-
-  return items.slice(0, normalizeLimit(limit));
-}
-
-function normalizeOffset(offset) {
-  const parsed = Number(offset ?? 0);
-
-  if (!Number.isFinite(parsed) || parsed < 0) {
-    return 0;
-  }
-
-  return Math.floor(parsed);
-}
-
-function normalizeLimit(limit) {
-  const parsed = Number(limit ?? 500);
-
-  if (!Number.isFinite(parsed) || parsed < 1) {
-    return 500;
-  }
-
-  return Math.min(Math.floor(parsed), 500);
-}
-
-function filterWorkorders(workorders, args) {
-  return workorders.filter((workorder) => {
-    const status = normalizeWorkorderStatus(args.status);
-
-    if (status !== undefined && Number(workorder.status) !== status) {
-      return false;
-    }
-
-    if (args.project !== undefined && Number(workorder.assignment_id ?? workorder.project) !== Number(args.project)) {
-      return false;
-    }
-
-    if (args.type !== undefined && Number(workorder.type_id ?? workorder.type) !== Number(args.type)) {
-      return false;
-    }
-
-    if (args.priority && normalizeComparable(workorder.priority) !== normalizeComparable(args.priority)) {
-      return false;
-    }
-
-    if (args.assigned_to && !matchesAssignedUser(workorder.assigned_to, args.assigned_to)) {
-      return false;
-    }
-
-    if (args.name && !containsText(workorder.name, args.name)) {
-      return false;
-    }
-
-    if (args.created_by && !containsText(workorder.created_by, args.created_by)) {
-      return false;
-    }
-
-    return true;
-  });
-}
-
-function normalizeWorkorderStatus(status) {
-  if (status === undefined || status === null || status === "") {
-    return undefined;
-  }
-
-  const numericStatus = Number(status);
-
-  if ([4, 5, 6, 7].includes(numericStatus)) {
-    return numericStatus;
-  }
-
-  const namedStatus = WORKORDER_STATUS[normalizeComparable(status)];
-
-  if (namedStatus) {
-    return namedStatus;
-  }
-
-  throw new Error("status must be one of: 4, 5, 6, 7, pendiente, en-ejecucion, completado, anulado");
-}
-
-function normalizeWorkorder(workorder, includeRaw = false) {
-  const normalized = {
-    id: workorder.id,
-    name: workorder.name,
-    status: workorder.status,
-    status_name: workorderStatusName(workorder.status),
-    priority: workorder.priority ?? null,
-    project_id: workorder.assignment_id ?? workorder.project ?? null,
-    type_id: workorder.type_id ?? workorder.type ?? null,
-    created_at: normalizeDateValue(workorder.created_at ?? workorder.created_on),
-    start_date: normalizeDateValue(workorder.start_date),
-    finish_date: normalizeDateValue(workorder.finish_date ?? workorder.end_date),
-    completed_at: normalizeDateValue(workorder.completed_at),
-    started_at: normalizeDateValue(workorder.started_at),
-    rejected_at: normalizeDateValue(workorder.rejected_at),
-    created_by: workorder.created_by ?? null,
-    assigned_to: normalizeUsers(workorder.assigned_to),
-    received_by: normalizeUsers(workorder.received_by),
-    readed_by: normalizeUsers(workorder.readed_by)
-  };
-
-  if (includeRaw) {
-    normalized.raw = workorder;
-  }
-
-  return normalized;
-}
-
-function workorderStatusName(status) {
-  switch (Number(status)) {
-    case 4:
-      return "Pendiente";
-    case 5:
-      return "En ejecución";
-    case 6:
-      return "Completado";
-    case 7:
-      return "Anulado";
-    default:
-      return null;
-  }
-}
-
-function normalizeDateValue(value) {
-  if (typeof value === "string") {
-    return value;
-  }
-
-  return value?.date ?? null;
-}
-
-function normalizeUsers(users) {
-  if (!Array.isArray(users)) {
-    return users ?? null;
-  }
-
-  return users.map((user) => ({
-    id: user.id ?? null,
-    username: user.username ?? user.name ?? null,
-    email: user.email ?? null
-  }));
-}
-
-function matchesAssignedUser(users, query) {
-  if (!Array.isArray(users)) {
-    return containsText(users, query);
-  }
-
-  return users.some((user) => {
-    return [user.id, user.username, user.name, user.email].some((value) => containsText(value, query));
-  });
-}
-
-function containsText(value, query) {
-  return normalizeComparable(value).includes(normalizeComparable(query));
-}
-
-function normalizeComparable(value) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function normalizeReportDate(value) {
-  const text = String(value || "").trim();
-  const isoMatch = text.match(/^(\d{4})-(\d{2})-(\d{2})$/);
-
-  if (isoMatch) {
-    return `${isoMatch[3]}/${isoMatch[2]}/${isoMatch[1]}`;
-  }
-
-  if (/^\d{2}\/\d{2}\/\d{4}$/.test(text)) {
-    return text;
-  }
-
-  throw new Error("date must be in YYYY-MM-DD or DD/MM/YYYY format.");
+  return text;
 }
 
 function todayReportDate(context = {}) {
-  const timezone = context.timezone || process.env.ITCONS_TIMEZONE || "Europe/Madrid";
-  const parts = new Intl.DateTimeFormat("en-GB", {
+  const timezone = context.timezone || process.env.TZ || process.env.ITCONS_TIMEZONE || "Europe/Madrid";
+
+  return new Intl.DateTimeFormat("en-CA", {
     timeZone: timezone,
-    day: "2-digit",
+    year: "numeric",
     month: "2-digit",
-    year: "numeric"
-  }).formatToParts(new Date());
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-
-  return `${values.day}/${values.month}/${values.year}`;
-}
-
-function addOptionalParam(params, key, value) {
-  if (value !== undefined && value !== null && value !== "") {
-    params.set(key, String(value));
-  }
-}
-
-function assertRequired(args, fields) {
-  const missing = fields.filter((field) => args[field] === undefined || args[field] === null || args[field] === "");
-
-  if (missing.length > 0) {
-    throw new Error(`Missing required argument(s): ${missing.join(", ")}`);
-  }
-}
-
-function assertEnum(value, values, field) {
-  if (value !== undefined && value !== null && value !== "" && !values.includes(String(value))) {
-    throw new Error(`${field} must be one of: ${values.join(", ")}`);
-  }
-}
-
-function emptyToUndefined(value) {
-  return value === "" ? undefined : value;
+    day: "2-digit"
+  }).format(new Date());
 }
 
 function dropUndefined(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
   return Object.fromEntries(Object.entries(value).filter(([, entry]) => entry !== undefined));
+}
+
+function pick(value, keys) {
+  return Object.fromEntries(keys.map((key) => [key, value[key]]).filter(([, entry]) => entry !== undefined));
+}
+
+function assertId(value) {
+  if (!Number.isInteger(Number(value)) || Number(value) <= 0) {
+    throw new Error("A positive numeric ID is required.");
+  }
 }
 
 async function main() {
@@ -935,10 +752,9 @@ async function main() {
   await server.connect(transport);
 }
 
-function isMainModule() {
-  return process.argv[1] && fileURLToPath(import.meta.url) === process.argv[1];
-}
-
-if (isMainModule()) {
-  await main();
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
 }
