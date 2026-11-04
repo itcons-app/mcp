@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { createHash, randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
@@ -12,27 +13,53 @@ const serverPath = path.join(rootDir, "src", "http.js");
 const port = process.env.ITCONS_HTTP_SMOKE_PORT || "3336";
 const origin = `http://127.0.0.1:${port}`;
 const redirectUri = "http://127.0.0.1/callback";
+const resource = `${origin}/mcp`;
 const readOnlyTools = new Set([
   "itcons_check_connection",
-  "itcons_list_workorder_types",
-  "itcons_list_work_report_models",
-  "itcons_list_projects",
-  "itcons_list_clients",
-  "itcons_list_statuses",
   "itcons_list_users",
+  "itcons_get_user",
+  "itcons_list_clients",
+  "itcons_get_client",
+  "itcons_list_projects",
+  "itcons_get_project",
+  "itcons_list_categories",
+  "itcons_get_category",
   "itcons_list_resources",
-  "itcons_search_workorders",
-  "itcons_list_pending_workorders",
-  "itcons_search_work_reports",
+  "itcons_get_resource",
+  "itcons_list_calendars",
+  "itcons_get_calendar",
+  "itcons_list_leave_types",
+  "itcons_list_work_report_templates",
+  "itcons_get_work_report_template",
+  "itcons_list_work_reports",
+  "itcons_get_work_report",
+  "itcons_get_work_report_as_post_payload",
   "itcons_list_work_reports_by_date",
-  "itcons_list_today_work_reports"
+  "itcons_list_today_work_reports",
+  "itcons_list_work_order_types",
+  "itcons_get_work_order_type",
+  "itcons_list_work_orders",
+  "itcons_get_work_order",
+  "itcons_list_statuses"
 ]);
-const createTools = new Set([
-  "itcons_create_workorder",
+const writeTools = new Set([
   "itcons_create_user",
+  "itcons_update_user",
+  "itcons_create_client",
+  "itcons_update_client",
   "itcons_create_project",
-  "itcons_create_client"
+  "itcons_update_project",
+  "itcons_create_category",
+  "itcons_update_category",
+  "itcons_create_resource",
+  "itcons_update_resource",
+  "itcons_create_work_report",
+  "itcons_update_work_report_metadata",
+  "itcons_replace_work_report_content",
+  "itcons_create_work_order",
+  "itcons_update_work_order"
 ]);
+const expectedToolCount = readOnlyTools.size + writeTools.size;
 
 assertEnv("ITCONS_DOMAIN");
 assertEnv("ITCONS_USERNAME");
@@ -51,9 +78,12 @@ const child = spawn(process.execPath, [serverPath], {
 
 try {
   await waitForHealth(`${origin}/health`);
+  await verifyOAuthDiscovery();
   const oauthClient = await registerClient();
-  const code = await authorize(oauthClient);
-  const token = await exchangeCode(code, oauthClient);
+  const verifier = randomBytes(32).toString("base64url");
+  const challenge = createHash("sha256").update(verifier).digest("base64url");
+  const code = await authorize(oauthClient, challenge);
+  const token = await exchangeCode(code, oauthClient, verifier);
   const transport = new StreamableHTTPClientTransport(new URL(`${origin}/mcp`), {
     requestInit: {
       headers: {
@@ -88,7 +118,7 @@ try {
           tool.annotations?.openWorldHint !== false;
       }
 
-      if (createTools.has(tool.name)) {
+      if (writeTools.has(tool.name)) {
         return tool.annotations?.readOnlyHint !== false ||
           tool.annotations?.destructiveHint !== false ||
           tool.annotations?.openWorldHint !== false;
@@ -102,8 +132,8 @@ try {
     arguments: {}
   });
 
-  if (tools.length !== 17) {
-    throw new Error(`Expected 17 tools, discovered ${tools.length}.`);
+  if (tools.length !== expectedToolCount) {
+    throw new Error(`Expected ${expectedToolCount} tools, discovered ${tools.length}.`);
   }
 
   if (missingAnnotations.length > 0) {
@@ -124,13 +154,16 @@ try {
   child.kill();
 }
 
-async function authorize(oauthClient) {
+async function authorize(oauthClient, challenge) {
   const body = new URLSearchParams({
     response_type: "code",
     client_id: oauthClient.client_id,
     redirect_uri: redirectUri,
     state: "smoke",
     scope: "itcons:mcp",
+    resource,
+    code_challenge: challenge,
+    code_challenge_method: "S256",
     domain: process.env.ITCONS_DOMAIN,
     username: process.env.ITCONS_USERNAME,
     password: process.env.ITCONS_PASSWORD
@@ -152,13 +185,14 @@ async function authorize(oauthClient) {
   return new URL(location).searchParams.get("code");
 }
 
-async function exchangeCode(code, oauthClient) {
+async function exchangeCode(code, oauthClient, verifier) {
   const body = new URLSearchParams({
     grant_type: "authorization_code",
     code,
     redirect_uri: redirectUri,
     client_id: oauthClient.client_id,
-    client_secret: oauthClient.client_secret
+    code_verifier: verifier,
+    resource
   });
   const response = await fetch(`${origin}/oauth/token`, {
     method: "POST",
@@ -188,16 +222,52 @@ async function registerClient() {
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       scope: "itcons:mcp",
-      token_endpoint_auth_method: "client_secret_post"
+      token_endpoint_auth_method: "none"
     })
   });
   const payload = await response.json();
 
-  if (!response.ok || !payload.client_id || !payload.client_secret) {
+  if (!response.ok || !payload.client_id) {
     throw new Error(`OAuth dynamic client registration failed with status ${response.status}.`);
   }
 
   return payload;
+}
+
+async function verifyOAuthDiscovery() {
+  const [resourceResponse, authorizationResponse, unauthorizedResponse] = await Promise.all([
+    fetch(`${origin}/.well-known/oauth-protected-resource`),
+    fetch(`${origin}/.well-known/oauth-authorization-server`),
+    fetch(`${origin}/mcp`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        jsonrpc: "2.0",
+        id: 1,
+        method: "initialize",
+        params: {
+          protocolVersion: "2025-03-26",
+          capabilities: {},
+          clientInfo: { name: "oauth-smoke", version: "1.0.0" }
+        }
+      })
+    })
+  ]);
+  const resourceMetadata = await resourceResponse.json();
+  const authorizationMetadata = await authorizationResponse.json();
+
+  if (!resourceResponse.ok || resourceMetadata.resource !== resource) {
+    throw new Error("Invalid protected resource metadata.");
+  }
+
+  if (!authorizationResponse.ok || !authorizationMetadata.code_challenge_methods_supported?.includes("S256")) {
+    throw new Error("OAuth metadata does not advertise PKCE S256.");
+  }
+
+  const challenge = unauthorizedResponse.headers.get("www-authenticate") || "";
+  if (unauthorizedResponse.status !== 401 || !challenge.includes("resource_metadata=")) {
+    throw new Error("Unauthenticated MCP requests do not advertise protected resource metadata.");
+  }
 }
 
 async function waitForHealth(url) {
