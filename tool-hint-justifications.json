@@ -14,6 +14,78 @@
         "destructive_justification": "Does not delete, overwrite, revoke access, or perform any irreversible action."
       }
     },
+    "itcons_list_calendars": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists calendars from the authenticated user's private Itcons.app workspace and does not modify them.",
+        "open_world_justification": "Only accesses the authenticated user's bounded private workspace and does not access public or open-ended internet data.",
+        "destructive_justification": "Does not create, update, delete, overwrite, or revoke anything."
+      }
+    },
+    "itcons_list_holidays": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads one authorized private calendar and returns its holidays within a caller-supplied bounded date range.",
+        "open_world_justification": "Only reads the authenticated user's private Itcons.app calendar and does not query public internet sources.",
+        "destructive_justification": "Does not change the calendar or perform any irreversible action."
+      }
+    },
+    "itcons_get_working_days": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only reads one private calendar and computes working days locally for a maximum inclusive range of 366 days.",
+        "open_world_justification": "Uses only the authenticated user's bounded private calendar and no public or open-ended external data.",
+        "destructive_justification": "Performs a local calculation without creating, updating, deleting, or overwriting records."
+      }
+    },
+    "itcons_list_leave_types": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists the private leave-type catalog and does not retrieve employee leave records or modify data.",
+        "open_world_justification": "Only reads a bounded catalog from the authenticated user's private Itcons.app workspace.",
+        "destructive_justification": "Does not create, update, delete, overwrite, or approve leave information."
+      }
+    },
+    "itcons_list_projects": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists authorized projects and returns a reduced operational view capped at 50 items without modifying project data.",
+        "open_world_justification": "Only reads projects from the authenticated user's bounded private Itcons.app workspace.",
+        "destructive_justification": "Does not create, update, archive, delete, or overwrite projects."
+      }
+    },
+    "itcons_list_work_orders": {
+      "annotations": {
+        "readOnlyHint": true,
+        "openWorldHint": false,
+        "destructiveHint": false
+      },
+      "justifications": {
+        "read_only_justification": "Only lists authorized work orders and returns a reduced operational view capped at 50 items without notes, people, locations, or attachments.",
+        "open_world_justification": "Only reads work orders from the authenticated user's bounded private Itcons.app workspace.",
+        "destructive_justification": "Does not create, assign, start, complete, update, archive, or delete work orders."
+      }
+    },
     "itcons_list_work_report_models": {
       "annotations": {
         "readOnlyHint": true,

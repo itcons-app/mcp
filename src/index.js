@@ -33,6 +33,12 @@ const OAUTH_SECURITY_SCHEMES = [
 ];
 const REPORTS_ONLY_TOOL_NAMES = [
   "itcons_check_connection",
+  "itcons_list_calendars",
+  "itcons_list_holidays",
+  "itcons_get_working_days",
+  "itcons_list_leave_types",
+  "itcons_list_projects",
+  "itcons_list_work_orders",
   "itcons_list_work_report_models",
   "itcons_search_work_reports",
   "itcons_list_work_reports_by_date",
@@ -79,6 +85,12 @@ const TOOL_DEFINITIONS = [
 
   readTool("itcons_list_projects", "List projects from Itcons.app API v3.", objectSchema({
     ...paginationSchema().properties,
+    search: stringProperty("Filter projects by text search."),
+    erpid: stringProperty("Filter by project ERP identifier."),
+    client_id: integerProperty("Filter by client ID."),
+    client_erpid: stringProperty("Filter by client ERP identifier."),
+    user_id: integerProperty("Filter by assigned user ID."),
+    updated_since: stringProperty("Filter projects updated since this ISO 8601 date/time."),
     is_archived: booleanProperty("Filter archived projects.")
   })),
   readTool("itcons_get_project", "Get one project by API v3 ID.", idSchema("project_id")),
@@ -129,6 +141,16 @@ const TOOL_DEFINITIONS = [
 
   readTool("itcons_list_calendars", "List calendars from Itcons.app API v3.", paginationSchema()),
   readTool("itcons_get_calendar", "Get one calendar by API v3 ID.", idSchema("calendar_id")),
+  readTool("itcons_list_holidays", "List holidays from one private Itcons.app calendar within an inclusive date range of at most 366 days.", objectSchema({
+    calendar_id: integerProperty("Calendar ID."),
+    date_from: stringProperty("First date to include in YYYY-MM-DD format."),
+    date_to: stringProperty("Last date to include in YYYY-MM-DD format.")
+  }, ["calendar_id", "date_from", "date_to"])),
+  readTool("itcons_get_working_days", "Calculate working and non-working days from one private Itcons.app calendar within an inclusive date range of at most 366 days.", objectSchema({
+    calendar_id: integerProperty("Calendar ID."),
+    date_from: stringProperty("First date to include in YYYY-MM-DD format."),
+    date_to: stringProperty("Last date to include in YYYY-MM-DD format.")
+  }, ["calendar_id", "date_from", "date_to"])),
   readTool("itcons_list_leave_types", "List leave types from Itcons.app API v3.", paginationSchema()),
 
   readTool("itcons_list_work_report_templates", "List work report templates from Itcons.app API v3.", paginationSchema()),
@@ -194,10 +216,21 @@ const TOOL_DEFINITIONS = [
   readTool("itcons_get_work_order_type", "Get one work order type by API v3 ID.", idSchema("work_order_type_id")),
   readTool("itcons_list_work_orders", "List work orders from Itcons.app API v3.", objectSchema({
     ...paginationSchema().properties,
+    search: stringProperty("Filter work orders by text search."),
+    identifier: integerProperty("Filter by displayed work order identifier."),
+    erpid: stringProperty("Filter by work order ERP identifier."),
     project_id: integerProperty("Filter by project ID."),
+    project_erpid: stringProperty("Filter by project ERP identifier."),
     work_order_type_id: integerProperty("Filter by work order type ID."),
     status_id: integerProperty("Filter by status ID."),
-    is_archived: booleanProperty("Filter archived work orders.")
+    area_id: integerProperty("Filter by area ID."),
+    user_id: integerProperty("Filter by assigned user ID."),
+    updated_since: stringProperty("Filter work orders updated since this ISO 8601 date/time."),
+    started_from: stringProperty("Filter work orders started on or after this ISO 8601 date/time."),
+    started_to: stringProperty("Filter work orders started on or before this ISO 8601 date/time."),
+    finished_from: stringProperty("Filter work orders finished on or after this ISO 8601 date/time."),
+    finished_to: stringProperty("Filter work orders finished on or before this ISO 8601 date/time."),
+    is_archived: booleanProperty("Filter archived work orders when supported by the installation.")
   })),
   readTool("itcons_get_work_order", "Get one work order by API v3 ID.", idSchema("work_order_id")),
   writeTool("itcons_create_work_order", "Create a work order in Itcons.app API v3.", objectSchema({
@@ -231,7 +264,9 @@ const TOOL_HANDLERS = {
   itcons_create_client: (args, context) => createResource("/clients", args, context),
   itcons_update_client: (args, context) => patchResource("/clients", args.client_id, args.payload, context),
 
-  itcons_list_projects: (args, context) => listResource("/projects", args, context),
+  itcons_list_projects: (args, context) => context.toolProfile === "reports-only"
+    ? listSafeProjects(args, context)
+    : listResource("/projects", args, context),
   itcons_get_project: (args, context) => getResource("/projects", args.project_id, context),
   itcons_create_project: (args, context) => createResource("/projects", args, context),
   itcons_update_project: (args, context) => patchResource("/projects", args.project_id, args.payload, context),
@@ -246,9 +281,15 @@ const TOOL_HANDLERS = {
   itcons_create_resource: (args, context) => createResource("/resources", args, context),
   itcons_update_resource: (args, context) => patchResource("/resources", args.resource_id, args.payload, context),
 
-  itcons_list_calendars: (args, context) => listResource("/calendars", args, context),
+  itcons_list_calendars: (args, context) => context.toolProfile === "reports-only"
+    ? listSafeCalendars(args, context)
+    : listResource("/calendars", args, context),
   itcons_get_calendar: (args, context) => getResource("/calendars", args.calendar_id, context),
-  itcons_list_leave_types: (args, context) => listResource("/leave-types", args, context),
+  itcons_list_holidays: (args, context) => listCalendarHolidays(args, context),
+  itcons_get_working_days: (args, context) => getCalendarWorkingDays(args, context),
+  itcons_list_leave_types: (args, context) => context.toolProfile === "reports-only"
+    ? listSafeLeaveTypes(args, context)
+    : listResource("/leave-types", args, context),
 
   itcons_list_work_report_templates: (args, context) => listResource("/work-report-templates", args, context),
   itcons_list_work_report_models: (args, context) => listResource("/work-report-templates", args, context),
@@ -271,7 +312,9 @@ const TOOL_HANDLERS = {
 
   itcons_list_work_order_types: (args, context) => listResource("/work-order-types", args, context),
   itcons_get_work_order_type: (args, context) => getResource("/work-order-types", args.work_order_type_id, context),
-  itcons_list_work_orders: (args, context) => listResource("/work-orders", args, context),
+  itcons_list_work_orders: (args, context) => context.toolProfile === "reports-only"
+    ? listSafeWorkOrders(args, context)
+    : listResource("/work-orders", args, context),
   itcons_get_work_order: (args, context) => getResource("/work-orders", args.work_order_id, context),
   itcons_create_work_order: (args, context) => createResource("/work-orders", args, context),
   itcons_update_work_order: (args, context) => patchResource("/work-orders", args.work_order_id, args.payload, context),
@@ -310,7 +353,7 @@ export function createItconsMcpServer(options = {}) {
 
   server.setRequestHandler(CallToolRequestSchema, async (request, extra) => {
     const args = request.params.arguments || {};
-    const context = itconsContext(extra);
+    const context = { ...itconsContext(extra), toolProfile };
 
     try {
       const handler = TOOL_HANDLERS[request.params.name];
@@ -504,21 +547,170 @@ async function listResource(pathname, args = {}, context = {}) {
     page: args.page ?? 1,
     limit: args.limit ?? 50,
     is_archived: args.is_archived,
+    search: args.search,
+    erpid: args.erpid,
+    identifier: args.identifier,
+    client_id: args.client_id,
+    client_erpid: args.client_erpid,
     include_subcategories: args.include_subcategories,
     template_id: args.template_id,
     project_id: args.project_id,
     project_erpid: args.project_erpid,
+    area_id: args.area_id,
     user_id: args.user_id,
     user_erpid: args.user_erpid,
     date_from: args.date_from,
     date_to: args.date_to,
     updated_since: args.updated_since,
+    started_from: args.started_from,
+    started_to: args.started_to,
+    finished_from: args.finished_from,
+    finished_to: args.finished_to,
     work_order_type_id: args.work_order_type_id,
     status_id: args.status_id,
     status: args.status
   });
 
   return apiRequest(pathname, { query }, context);
+}
+
+async function listCalendarHolidays(args, context = {}) {
+  const range = calendarDateRange(args.date_from, args.date_to);
+  const response = await getResource("/calendars", args.calendar_id, context);
+  const calendar = response?.data || response;
+  const holidays = Array.isArray(calendar?.holidays) ? calendar.holidays : [];
+
+  return {
+    calendar: pick(calendar || {}, ["id", "name", "enabled"]),
+    date_from: range.dateFrom,
+    date_to: range.dateTo,
+    holidays: holidays
+      .filter((holiday) => isDateInRange(holiday?.date, range))
+      .map((holiday) => pick(holiday, ["name", "date"]))
+      .sort((left, right) => String(left.date).localeCompare(String(right.date)))
+  };
+}
+
+async function getCalendarWorkingDays(args, context = {}) {
+  const range = calendarDateRange(args.date_from, args.date_to);
+  const response = await getResource("/calendars", args.calendar_id, context);
+  const calendar = response?.data || response;
+  const holidays = new Map((Array.isArray(calendar?.holidays) ? calendar.holidays : [])
+    .filter((holiday) => isDateInRange(holiday?.date, range))
+    .map((holiday) => [holiday.date, holiday.name]));
+  const workingDays = [];
+  const nonWorkingDays = [];
+
+  for (const date of eachDateInRange(range)) {
+    const day = date.getUTCDay();
+    const dateText = isoDate(date);
+    const holidayName = holidays.get(dateText);
+    const weekendOff = (day === 6 && calendar?.saturday_day_off === true) ||
+      (day === 0 && calendar?.sunday_day_off === true);
+
+    if (holidayName || weekendOff) {
+      nonWorkingDays.push({
+        date: dateText,
+        reason: holidayName ? "holiday" : "weekly_day_off",
+        ...(holidayName ? { name: holidayName } : {})
+      });
+    } else {
+      workingDays.push(dateText);
+    }
+  }
+
+  return {
+    calendar: pick(calendar || {}, ["id", "name", "enabled", "saturday_day_off", "sunday_day_off"]),
+    date_from: range.dateFrom,
+    date_to: range.dateTo,
+    total_days: range.totalDays,
+    working_days_count: workingDays.length,
+    non_working_days_count: nonWorkingDays.length,
+    working_days: workingDays,
+    non_working_days: nonWorkingDays
+  };
+}
+
+async function listSafeProjects(args, context = {}) {
+  const response = await listResource("/projects", { ...args, limit: boundedListLimit(args.limit) }, context);
+  return mapResponseData(response, (project) => ({
+    ...pick(project, ["id", "erpid", "name", "is_archived", "started_at", "finished_at"]),
+    ...(project?.status ? { status: safeReference(project.status) } : {})
+  }));
+}
+
+async function listSafeWorkOrders(args, context = {}) {
+  const response = await listResource("/work-orders", { ...args, limit: boundedListLimit(args.limit) }, context);
+  return mapResponseData(response, (workOrder) => ({
+    ...pick(workOrder, [
+      "id", "erpid", "identifier", "name", "priority", "planned_started_at", "planned_finished_at",
+      "started_at", "completed_at", "rejected_at", "unit_measurement_value", "estimated_duration"
+    ]),
+    ...(workOrder?.status ? { status: safeReference(workOrder.status) } : {}),
+    ...(workOrder?.work_order_type ? { work_order_type: safeReference(workOrder.work_order_type) } : {}),
+    ...(workOrder?.project ? { project: safeReference(workOrder.project) } : {}),
+    ...(workOrder?.area ? { area: safeReference(workOrder.area) } : {})
+  }));
+}
+
+async function listSafeCalendars(args, context = {}) {
+  const response = await listResource("/calendars", { ...args, limit: boundedListLimit(args.limit) }, context);
+  return mapResponseData(response, (calendar) => pick(calendar, [
+    "id", "name", "enabled", "saturday_day_off", "sunday_day_off"
+  ]));
+}
+
+async function listSafeLeaveTypes(args, context = {}) {
+  const response = await listResource("/leave-types", { ...args, limit: boundedListLimit(args.limit) }, context);
+  return mapResponseData(response, (leaveType) => pick(leaveType, ["id", "name", "day_type", "enabled"]));
+}
+
+function safeReference(value) {
+  return pick(value || {}, ["id", "erpid", "name", "slug"]);
+}
+
+function mapResponseData(response, mapper) {
+  if (Array.isArray(response?.data)) return { ...response, data: response.data.map(mapper) };
+  if (response?.data && typeof response.data === "object") return { ...response, data: mapper(response.data) };
+  if (Array.isArray(response)) return response.map(mapper);
+  return response;
+}
+
+function boundedListLimit(value) {
+  const limit = Number(value ?? 50);
+  return Number.isInteger(limit) ? Math.min(Math.max(limit, 1), 50) : 50;
+}
+
+function calendarDateRange(dateFrom, dateTo) {
+  const datePattern = /^\d{4}-\d{2}-\d{2}$/;
+  if (!datePattern.test(String(dateFrom)) || !datePattern.test(String(dateTo))) {
+    throw new Error("date_from and date_to must use YYYY-MM-DD format.");
+  }
+
+  const start = new Date(`${dateFrom}T00:00:00.000Z`);
+  const end = new Date(`${dateTo}T00:00:00.000Z`);
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || isoDate(start) !== dateFrom || isoDate(end) !== dateTo) {
+    throw new Error("date_from and date_to must be valid calendar dates.");
+  }
+  if (end < start) throw new Error("date_to must be on or after date_from.");
+
+  const totalDays = Math.floor((end - start) / 86400000) + 1;
+  if (totalDays > 366) throw new Error("The calendar date range cannot exceed 366 days.");
+  return { start, end, dateFrom, dateTo, totalDays };
+}
+
+function isDateInRange(value, range) {
+  return typeof value === "string" && value >= range.dateFrom && value <= range.dateTo;
+}
+
+function eachDateInRange(range) {
+  const dates = [];
+  for (let time = range.start.getTime(); time <= range.end.getTime(); time += 86400000) dates.push(new Date(time));
+  return dates;
+}
+
+function isoDate(date) {
+  return date.toISOString().slice(0, 10);
 }
 
 async function getResource(pathname, id, context = {}) {
