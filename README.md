@@ -163,12 +163,18 @@ Write tools:
 Reports-only profile tools exposed by `/reports-mcp`:
 
 - `itcons_check_connection`
+- `itcons_list_calendars`
+- `itcons_list_holidays`
+- `itcons_get_working_days`
+- `itcons_list_leave_types`
+- `itcons_list_projects`
+- `itcons_list_work_orders`
 - `itcons_list_work_report_models`
 - `itcons_search_work_reports`
 - `itcons_list_work_reports_by_date`
 - `itcons_list_today_work_reports`
 
-The reports-only profile keeps its previous tool names for compatibility, but routes them to API v3 work report templates and work reports internally.
+The reports-only profile keeps its previous work-report tool names for compatibility and adds bounded read-only operational queries. Project and work-order results are reduced to operational fields and exclude notes, user identities, locations, attachments, client details and other unnecessary private data. Public-profile list calls are capped at 50 items, and calendar calculations accept at most 366 inclusive days.
 
 Patch tools accept a `payload` object with the exact API v3 fields documented by the Postman collection. This keeps the MCP aligned with the API without hiding partial update features such as `add` and `remove` operations.
 

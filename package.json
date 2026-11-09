@@ -1,6 +1,6 @@
 {
   "name": "@itcons-app/mcp",
-  "version": "0.8.1",
+  "version": "0.9.0",
   "description": "Model Context Protocol server for connecting AI assistants to Itcons.app API v3 work orders, work reports, projects, clients, users, and resources.",
   "mcpName": "io.github.itcons-app/mcp",
   "type": "module",
@@ -33,6 +33,8 @@
     ".env.example",
     "README.md",
     "server.json",
+    "tool-hint-justifications.json",
+    "CHANGELOG.md",
     "LICENSE"
   ],
   "keywords": [

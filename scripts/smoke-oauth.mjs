@@ -28,6 +28,8 @@ const readOnlyTools = new Set([
   "itcons_get_resource",
   "itcons_list_calendars",
   "itcons_get_calendar",
+  "itcons_list_holidays",
+  "itcons_get_working_days",
   "itcons_list_leave_types",
   "itcons_list_work_report_templates",
   "itcons_get_work_report_template",
