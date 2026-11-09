@@ -282,15 +282,27 @@ async function waitForHealth(url) {
 }
 
 async function verifyOAuthDiscovery(origin) {
-  const [resourceResponse, authorizationResponse] = await Promise.all([
+  const [resourceResponse, mainResourceResponse, reportsResourceResponse, authorizationResponse] = await Promise.all([
     fetch(`${origin}/.well-known/oauth-protected-resource`),
+    fetch(`${origin}/.well-known/oauth-protected-resource/mcp`),
+    fetch(`${origin}/.well-known/oauth-protected-resource/reports-mcp`),
     fetch(`${origin}/.well-known/oauth-authorization-server`)
   ]);
   const resource = await resourceResponse.json();
+  const mainResource = await mainResourceResponse.json();
+  const reportsResource = await reportsResourceResponse.json();
   const authorization = await authorizationResponse.json();
 
-  if (!resourceResponse.ok || resource.resource !== `${origin}/mcp`) {
-    throw new Error("Invalid OAuth protected resource metadata.");
+  if (!resourceResponse.ok || resource.resource !== `${origin}/reports-mcp`) {
+    throw new Error("Generic OAuth metadata does not advertise the public ChatGPT resource.");
+  }
+
+  if (!mainResourceResponse.ok || mainResource.resource !== `${origin}/mcp`) {
+    throw new Error("Invalid main MCP protected resource metadata.");
+  }
+
+  if (!reportsResourceResponse.ok || reportsResource.resource !== `${origin}/reports-mcp`) {
+    throw new Error("Invalid reports MCP protected resource metadata.");
   }
 
   if (!resource.authorization_servers?.includes(`${origin}/`)) {

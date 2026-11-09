@@ -237,8 +237,9 @@ async function registerClient() {
 }
 
 async function verifyOAuthDiscovery() {
-  const [resourceResponse, authorizationResponse, unauthorizedResponse] = await Promise.all([
+  const [resourceResponse, mainResourceResponse, authorizationResponse, unauthorizedResponse] = await Promise.all([
     fetch(`${origin}/.well-known/oauth-protected-resource`),
+    fetch(`${origin}/.well-known/oauth-protected-resource/mcp`),
     fetch(`${origin}/.well-known/oauth-authorization-server`),
     fetch(`${origin}/mcp`, {
       method: "POST",
@@ -256,10 +257,15 @@ async function verifyOAuthDiscovery() {
     })
   ]);
   const resourceMetadata = await resourceResponse.json();
+  const mainResourceMetadata = await mainResourceResponse.json();
   const authorizationMetadata = await authorizationResponse.json();
 
-  if (!resourceResponse.ok || resourceMetadata.resource !== resource) {
-    throw new Error("Invalid protected resource metadata.");
+  if (!resourceResponse.ok || resourceMetadata.resource !== `${origin}/reports-mcp`) {
+    throw new Error("Generic protected resource metadata does not advertise the public ChatGPT resource.");
+  }
+
+  if (!mainResourceResponse.ok || mainResourceMetadata.resource !== resource) {
+    throw new Error("Invalid main MCP protected resource metadata.");
   }
 
   if (!authorizationResponse.ok || !authorizationMetadata.code_challenge_methods_supported?.includes("S256")) {

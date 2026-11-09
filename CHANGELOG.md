@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.9.1 - 2026-11-09
+
+- Advertise the reports-only ChatGPT endpoint in generic OAuth protected-resource discovery.
+- Preserve path-specific OAuth metadata for both the general and reports-only MCP endpoints.
+- Allow the authorization form redirect to the registered ChatGPT callback origin.
+- Accept general-resource tokens on the reports-only endpoint for cached ChatGPT OAuth connections, without granting reports tokens access to the general MCP.
+
 ## 0.9.0 - 2026-11-09
 
 - Expand the reports-only ChatGPT profile with read-only calendar, holiday, working-day, leave-type, project and work-order queries.

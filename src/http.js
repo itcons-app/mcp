@@ -101,7 +101,7 @@ app.get("/domain-lookup", async (req, res) => {
 
 app.get("/.well-known/oauth-authorization-server", oauthMetadataHandler);
 app.get("/.well-known/oauth-authorization-server/:resource", oauthMetadataHandler);
-app.get("/.well-known/oauth-protected-resource", protectedResourceMetadataHandler(config.mcpPath));
+app.get("/.well-known/oauth-protected-resource", protectedResourceMetadataHandler(config.reportsMcpPath));
 app.get(`/.well-known/oauth-protected-resource${config.mcpPath}`, protectedResourceMetadataHandler(config.mcpPath));
 app.get(`/.well-known/oauth-protected-resource${config.reportsMcpPath}`, protectedResourceMetadataHandler(config.reportsMcpPath));
 app.get(`/.well-known/oauth-protected-resource${config.ssePath}`, protectedResourceMetadataHandler(config.ssePath));
@@ -288,7 +288,10 @@ function requireMcpAuth(req, res, next) {
   }
 
   const requestedResource = resourceForRequest(req);
-  if (session.resource && session.resource !== requestedResource) {
+  const mainResource = absoluteUrl(config.mcpPath);
+  const reportsResource = absoluteUrl(config.reportsMcpPath);
+  const mainTokenForReports = session.resource === mainResource && requestedResource === reportsResource;
+  if (session.resource && session.resource !== requestedResource && !mainTokenForReports) {
     res.setHeader("WWW-Authenticate", oauthChallenge(req, "invalid_token"));
     res.status(401).json({ error: "invalid_token" });
     return;
@@ -953,7 +956,7 @@ function securityHeaders(req, res, next) {
   res.setHeader("Referrer-Policy", "no-referrer");
   res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   if (req.path === "/oauth/authorize") {
-    res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'none'");
+    res.setHeader("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; script-src 'unsafe-inline'; connect-src 'self'; form-action 'self' https://chatgpt.com; frame-ancestors 'none'; base-uri 'none'");
   }
   next();
 }
