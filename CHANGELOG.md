@@ -8,6 +8,7 @@
 - Limit calendar calculations to valid inclusive date ranges of at most 366 days.
 - Add official API v3 project and work-order filters.
 - Extend automated tests for tool discovery, OAuth metadata, data minimization, holidays and working-day calculations.
+- Move email-to-domain discovery from `auto.itcons.app` to `autov2.itcons.app` for both remote MCP profiles.
 
 ## 0.8.1 - 2026-11-04
 

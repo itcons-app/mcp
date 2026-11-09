@@ -38,7 +38,7 @@ const config = {
   oauthClientsFile: process.env.ITCONS_OAUTH_CLIENTS_FILE || "",
   oauthStateFile: process.env.ITCONS_OAUTH_STATE_FILE || "",
   oauthStateSecret: process.env.ITCONS_OAUTH_STATE_SECRET || "",
-  domainLookupUrl: process.env.ITCONS_DOMAIN_LOOKUP_URL || "https://auto.itcons.app/webhook/my-domain",
+  domainLookupUrl: process.env.ITCONS_DOMAIN_LOOKUP_URL || "https://autov2.itcons.app/webhook/my-domain",
   authDisabled: process.env.ITCONS_HTTP_AUTH_DISABLED === "1"
 };
 

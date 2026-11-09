@@ -200,7 +200,7 @@ Patch tools accept a `payload` object with the exact API v3 fields documented by
 | `ITCONS_OAUTH_CLIENTS_FILE` | Recommended for public apps | JSON file used to persist dynamically registered OAuth clients. |
 | `ITCONS_OAUTH_STATE_FILE` | Required for restart-safe OAuth | Encrypted state file for access and refresh token sessions. |
 | `ITCONS_OAUTH_STATE_SECRET` | Required with the state file | Long random secret used to encrypt OAuth state at rest. |
-| `ITCONS_DOMAIN_LOOKUP_URL` | No | Endpoint used to detect the Itcons.app domain from an email. Defaults to `https://auto.itcons.app/webhook/my-domain`. |
+| `ITCONS_DOMAIN_LOOKUP_URL` | No | Endpoint used to detect the Itcons.app domain from an email. Defaults to `https://autov2.itcons.app/webhook/my-domain`. |
 | `ITCONS_HTTP_AUTH_DISABLED` | No | Set to `1` only for local HTTP smoke tests. Disables remote MCP bearer auth. |
 
 ## Development
