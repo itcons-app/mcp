@@ -101,7 +101,7 @@ app.get("/domain-lookup", async (req, res) => {
 
 app.get("/.well-known/oauth-authorization-server", oauthMetadataHandler);
 app.get("/.well-known/oauth-authorization-server/:resource", oauthMetadataHandler);
-app.get("/.well-known/oauth-protected-resource", protectedResourceMetadataHandler(config.mcpPath));
+app.get("/.well-known/oauth-protected-resource", protectedResourceMetadataHandler(config.reportsMcpPath));
 app.get(`/.well-known/oauth-protected-resource${config.mcpPath}`, protectedResourceMetadataHandler(config.mcpPath));
 app.get(`/.well-known/oauth-protected-resource${config.reportsMcpPath}`, protectedResourceMetadataHandler(config.reportsMcpPath));
 app.get(`/.well-known/oauth-protected-resource${config.ssePath}`, protectedResourceMetadataHandler(config.ssePath));
