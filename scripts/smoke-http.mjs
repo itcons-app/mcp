@@ -220,7 +220,7 @@ async function verifyOAuthDiscovery(origin) {
   }
 
   const contentSecurityPolicy = loginResponse.headers.get("content-security-policy") || "";
-  if (!contentSecurityPolicy.includes("form-action 'self' https://chatgpt.com")) {
-    throw new Error("OAuth login CSP does not allow the ChatGPT callback redirect.");
+  if (!contentSecurityPolicy.includes("form-action 'self' https://chatgpt.com https://claude.ai")) {
+    throw new Error("OAuth login CSP does not allow the ChatGPT and Claude callback redirects.");
   }
 }
