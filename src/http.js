@@ -553,7 +553,7 @@ function oauthChallenge(req, error) {
     ? "/.well-known/oauth-protected-resource/reports-mcp"
     : req.path === config.ssePath
       ? "/.well-known/oauth-protected-resource/sse"
-      : "/.well-known/oauth-protected-resource";
+      : `/.well-known/oauth-protected-resource${config.mcpPath}`;
   const values = [
     `resource_metadata="${absoluteUrl(metadataPath)}"`,
     `scope="${OAUTH_SCOPE}"`

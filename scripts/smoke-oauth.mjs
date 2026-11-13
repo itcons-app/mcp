@@ -273,8 +273,9 @@ async function verifyOAuthDiscovery() {
   }
 
   const challenge = unauthorizedResponse.headers.get("www-authenticate") || "";
-  if (unauthorizedResponse.status !== 401 || !challenge.includes("resource_metadata=")) {
-    throw new Error("Unauthenticated MCP requests do not advertise protected resource metadata.");
+  const expectedMetadata = `${origin}/.well-known/oauth-protected-resource/mcp`;
+  if (unauthorizedResponse.status !== 401 || !challenge.includes(`resource_metadata="${expectedMetadata}"`)) {
+    throw new Error("Unauthenticated main MCP requests do not advertise their path-specific protected resource metadata.");
   }
 }
 

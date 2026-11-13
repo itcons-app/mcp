@@ -6,6 +6,7 @@
 - Preserve path-specific OAuth metadata for both the general and reports-only MCP endpoints.
 - Allow authorization form redirects to the registered ChatGPT and Claude callback origins.
 - Accept general-resource tokens on the reports-only endpoint for cached ChatGPT OAuth connections, without granting reports tokens access to the general MCP.
+- Advertise path-specific protected-resource metadata from unauthenticated requests to the general MCP endpoint.
 
 ## 0.9.0 - 2026-11-09
 
